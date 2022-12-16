@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security  
 -->
 
-## [Unreleased] - YYYY-MM-NN
+## [2.6.1] - 2022-12-16 - FallenDev
+- Updated Nuget Packages
+- Changed Localization to English
+- Migrated Solution to .NET 7.0
 
 ## [2.6.0] - 2022-10-29
 ### Added   
