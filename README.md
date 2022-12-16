@@ -1,72 +1,72 @@
-# KCP C#版。
-开箱即用。也可以使用Nuget 搜索KCP。
+# KCP C# version.
+Works out of the box. You can also use Nuget to search for KCP.
 
 ## Feature：
 
-- 异步API标准接口 IKcpIO.cs
+- Asynchronous API standard interface IKcpIO.cs
   - ValueTask Recv(IBufferWriter<byte> writer, object option = null);
   - ValueTask Output(IBufferWriter<byte> writer, object option = null);
-  - 附带一个基本实现。KcpIO.cs
-- kcpSegment泛型化，可由用户自定义高性能实现。
+  - Comes with a basic implementation.  KcpIO.cs
+- The generalization of kcpSegment can be implemented by user-defined high-performance.
   - `KcpCore<Segment>`  where Segment : IKcpSegment
   - `KcpIO<Segment>` : `KcpCore<Segment>`, IKcpIO  where Segment : IKcpSegment
   - `Kcp<Segment>` : `KcpCore<Segment>` where Segment:IKcpSegment
 
-## 链接：
+## Link:
 
 c: skywind3000 [KCP](https://github.com/skywind3000/kcp)  
 go: xtaci [kcp-go](https://github.com/xtaci/kcp-go)  
 
-## 说明：
+## Illustrate:
 
-- 内部使用了unsafe代码和非托管内存，不会对gc造成压力。
-- 支持用户自定义内存管理方式,如果不想使用unsafe模式,可以使用内存池.
-- 对于output回调和TryRecv函数。使用RentBuffer回调，从外部分配内存。请参考[IMemoryOwner](https://docs.microsoft.com/en-us/dotnet/standard/memory-and-spans/memory-t-usage-guidelines)用法。
-- 支持`Span<byte>`
+- Unsafe code and unmanaged memory are used internally, which will not cause pressure on gc.
+- Support user-defined memory management methods, if you don't want to use unsafe mode, you can use memory pool.
+- For output callback and TryRecv function. Use the RentBuffer callback to allocate memory externally. Please refer to [IMemoryOwner](https://docs.microsoft.com/en-us/dotnet/standard/memory-and-spans/memory-t-usage-guidelines) usage.
+- Support `Span<byte>`
 
-## 线程安全
-简单的说：  
-不能在线程1调用Recv/Update时，线程2也在调用Recv/Update。函数内部使用大量共享数据结构，如果加锁严重影响性能。    
-可以在线程1调用Send/Input时，线程2也在调用Send/Input。函数内部有锁。  
+## Thread Safety
+Simply put: 
+When thread 1 calls Recv/Update, thread 2 is also calling Recv/Update. A large number of shared data structures are used inside the function, and if locked, performance will be seriously affected.    
+When thread 1 calls Send/Input, thread 2 is also calling Send/Input. There are locks inside the function.
 
-- 可以在任意多线程同时调用Send 和 Input。  
-  多线程同时发送消息是安全的，可以放心的在异步函数中发送消息。    
-- 但`不可以`多个线程同时调用Recv 和 Update。  
-  同名方法仅支持一个线程同时调用，否则会导致多线程错误。  
+- Send and Input can be called simultaneously from any number of threads. 
+  It is safe for multiple threads to send messages at the same time, and you can safely send messages in asynchronous functions.  
+- But `cannot` multiple threads call Recv and Update at the same time.
+  The method with the same name can only be called by one thread at the same time, otherwise it will cause a multi-thread error. 
 
-## 测试：
-[[已修复]~~同一个进程两个Kcp echo测试，至少使用3个线程，否则可能死锁。~~](Image/deadlock.jpg)
+## Test：
+[[Fixed]~~ Two Kcp echo tests in the same process, use at least 3 threads, otherwise it may deadlock.  ~~](Image/deadlock.jpg)
 
-在UnitTestProject1路径下执行 dotnet test 可进行多框架测试。（需要安装dotnetcoreSDK）
+Execute dotnet test under the path of UnitTestProject1 to perform multi-framework testing.  (need to install dotnetcoreSDK)
 
-## 相对C版的一些变化：
+## Some changes from the C version：
 
-| 差异变化         | C版            | C#版                                                  |
+| Differential change        | Version C           | C# version                                                 |
 | ---------------- | -------------- | ----------------------------------------------------- |
-| 数据结构         |                |                                                       |
-| acklist          | 数组           | ConcurrentQueue                                       |
-| snd_queue        | 双向链表       | ConcurrentQueue                                       |
-| snd_buf          | 双向链表       | LinkedList                                            |
-| rcv_buf          | 双向链表       | LinkedList                                            |
-| rcv_queue        | 双向链表       | List                                                  |
+| data structure       |                |                                                       |
+| acklist          | array          | ConcurrentQueue                                       |
+| snd_queue        | Doubly linked list       | ConcurrentQueue                                       |
+| snd_buf          | Doubly linked list      | LinkedList                                            |
+| rcv_buf          | Doubly linked list       | LinkedList                                            |
+| rcv_queue        | Doubly linked list      | List                                                  |
 | --------------   | -------------- | --------------                                        |
-| 回调函数         |                | 增加了RentBuffer回调，当KCP需要时可以从外部申请内存。 |
-| 多线程           |                | 增加了线程安全。                                      |
-| 流模式           |                | 由于数据结构变动，移除了流模式。                      |
-| interval最小间隔 | 10ms           | 0ms(在特殊形况下允许CPU满负荷运转)                    |
+| Callback        |                | Added the RentBuffer callback, which can apply for memory from the outside when KCP needs it. |
+| Multithreading          |                | Increased thread safety.                                      |
+| Streaming Mode          |                | Stream mode has been removed due to data structure changes.                    |
+| interval minimum interval | 10ms           | 0ms (CPU is allowed to run at full load under special circumstances)                   |
 | --------------   | -------------- | --------------                                        |
-| API变动          |                |                                                       |
-|                  |                | 增加大小端编码设置。默认小端编码。                    |
-|                  |                | 增加TryRecv函数，当可以Recv时只peeksize一次。         |
-|                  | ikcp_ack_push  | 删除了此函数（已内联）                                |
-|                  | ikcp_ack_get   | 删除了此函数（已内联）                                |
+| API change         |                |                                                       |
+|                  |                | Increase endian encoding settings. Default little-endian encoding.                    |
+|                  |                | Add the TryRecv function, and only peeksize once when Recv is possible.         |
+|                  | ikcp_ack_push  | This function was removed (inlined)                                |
+|                  | ikcp_ack_get   | This function was removed (inlined)                                |
 
 
 ---
 ---
-# 赞助链接
+## Sponsored Link
 
-![支付宝](https://github.com/KumoKyaku/KumoKyaku.github.io/blob/develop/source/_posts/%E5%9B%BE%E5%BA%8A/alipay.png)
+![Alipay](https://github.com/KumoKyaku/KumoKyaku.github.io/blob/develop/source/_posts/%E5%9B%BE%E5%BA%8A/alipay.png)
 
 
 
