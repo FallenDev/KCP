@@ -5,17 +5,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Runtime.InteropServices;
 
 namespace System.Net.Sockets.Kcp.Tests
 {
-    [TestClass()]
+    [TestClass]
     public class UnitTest1
     {
-        [TestMethod()]
+        [TestMethod]
         public void ConvertTimeTest()
         {
-            DateTimeOffset dateTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, default);
+            var dateTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, default);
             var t1 = dateTime.ConvertTime();
             var t2 = dateTime.ConvertTime2();
             var t3 = dateTime.ConvertTimeOld();
@@ -23,22 +22,24 @@ namespace System.Net.Sockets.Kcp.Tests
             Assert.AreEqual(t2, t3);
         }
 
-        [TestMethod()]
+        [TestMethod]
         public void ReadHeaderTest()
         {
             unsafe
             {
-                ///在栈上分配这个segment,这个segment随用随销毁，不会被保存
+                // Allocate this segment on the stack, this segment will be destroyed as it is used, and will not be saved
                 const int len = KcpSegment.LocalOffset + KcpSegment.HeadOffset;
                 var ptr = stackalloc byte[len];
-                KcpSegment seg = new KcpSegment(ptr, 0);
-                seg.conv = 1001;
-                seg.cmd = 100;
-                seg.frg = 20;
-                seg.wnd = 128;
-                seg.ts = 20;
-                seg.sn = 9999;
-                seg.una = 1002;
+                var seg = new KcpSegment(ptr, 0)
+                {
+                    conv = 1001,
+                    cmd = 100,
+                    frg = 20,
+                    wnd = 128,
+                    ts = 20,
+                    sn = 9999,
+                    una = 1002
+                };
 
                 Span<byte> buffer = stackalloc byte[100];
                 seg.Encode(buffer);
@@ -78,30 +79,19 @@ namespace UnitTestProject1
 {
     public class Handle : IKcpCallback
     {
-        //public void Output(ReadOnlySpan<byte> buffer)
-        //{
-        //    var frag = new byte[buffer.Length];
-        //    buffer.CopyTo(frag);
-        //    Out(frag);
-        //}
-
         public Action<Memory<byte>> Out;
         public Action<byte[]> Recv;
+
         public void Receive(byte[] buffer)
         {
             Recv(buffer);
         }
 
-        public IMemoryOwner<byte> RentBuffer(int lenght)
-        {
-            return null;
-        }
-
-        public void Output(IMemoryOwner<byte> buffer, int avalidLength)
+        public void Output(IMemoryOwner<byte> buffer, int aValidLength)
         {
             using (buffer)
             {
-                Out(buffer.Memory.Slice(0, avalidLength));
+                Out(buffer.Memory[..aValidLength]);
             }
         }
     }
@@ -109,7 +99,7 @@ namespace UnitTestProject1
     [TestClass]
     public class UnitTest1
     {
-        public const string message =
+        public const string Message =
         #region MyRegion
 
             @"LICENSE SYSTEM [2017918 10:58:53] Next license update check is after 2025-06-30T00:00:00
@@ -206,57 +196,45 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
         #endregion
 
         [TestMethod]
-        public void TestKCP()
+        public void TestKcp()
         {
-            ///发送次数
             const int echoTimes = 3;
-            Random random = new Random();
-
+            const int conv = 123;
+            var random = new Random();
             var handle1 = new Handle();
             var handle2 = new Handle();
-
-            const int conv = 123;
             var kcp1 = new SimpleSegManager.Kcp(conv, handle1);
             var kcp2 = new SimpleSegManager.Kcp(conv, handle2);
+            kcp1.NoDelay(1, 10, 2, 1); // fast
+            kcp2.NoDelay(1, 10, 2, 1); // fast
 
-            ///kcp设置
-            ///https://github.com/skywind3000/kcp/issues/39#issuecomment-244592173
-            kcp1.NoDelay(1, 10, 2, 1);//fast
-            kcp2.NoDelay(1, 10, 2, 1);//fast
-
-            var sendbyte = Encoding.ASCII.GetBytes(message);
+            var sendByte = Encoding.ASCII.GetBytes(Message);
 
             handle1.Out += buffer =>
             {
                 var next = random.Next(100);
-                if (next >= 5)///随机丢包
-                {
-                    kcp2.Input(buffer.Span);
-                }
+                
+                // random packet loss
+                if (next >= 5) kcp2.Input(buffer.Span);
             };
 
-            handle2.Out += buffer =>
-            {
-                kcp1.Input(buffer.Span);
-            };
+            handle2.Out += buffer => kcp1.Input(buffer.Span);
 
-            int end = 0;
+            var end = 0;
+
             handle1.Recv += buffer =>
             {
-                string str = Encoding.ASCII.GetString(buffer);
-                Assert.AreEqual(message, str);
+                var str = Encoding.ASCII.GetString(buffer);
+                Assert.AreEqual(Message, str);
                 Interlocked.Increment(ref end);
-                //Assert.Warn($"echo {end}");
+
                 if (end < echoTimes)
                 {
                     kcp1.Send(buffer);
                 }
             };
 
-            handle2.Recv += buffer =>
-            {
-                kcp2.Send(buffer);
-            };
+            handle2.Recv += buffer => kcp2.Send(buffer);
 
             Task.Run(async () =>
             {
@@ -266,6 +244,7 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
                     {
                         kcp1.Update(DateTimeOffset.UtcNow);
                         int len;
+
                         while ((len = kcp1.PeekSize()) > 0)
                         {
                             var buffer = new byte[len];
@@ -274,6 +253,7 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
                                 handle1.Receive(buffer);
                             }
                         }
+
                         await Task.Delay(5);
                     }
                 }
@@ -292,25 +272,15 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
                     {
                         kcp2.Update(DateTimeOffset.UtcNow);
                         int len;
-                        //while ((len = kcp2.PeekSize()) > 0)
-                        //{
-                        //    var buffer = kcp2.CreateBuffer(len);
-                        //    if (kcp2.Recv(buffer.Memory.Span) >= 0)
-                        //    {
-                        //        handle2.Receive(buffer);
-                        //    }
-                        //}
 
                         do
                         {
-                            var (buffer, avalidSzie) = kcp2.TryRecv();
-                            len = avalidSzie;
-                            if (buffer != null)
-                            {
-                                var temp = new byte[len];
-                                buffer.Memory.Span.Slice(0, len).CopyTo(temp);
-                                handle2.Receive(temp);
-                            }
+                            var (buffer, aValidSize) = kcp2.TryRecv();
+                            len = aValidSize;
+                            if (buffer == null) continue;
+                            var temp = new byte[len];
+                            buffer.Memory.Span[..len].CopyTo(temp);
+                            handle2.Receive(temp);
                         } while (len > 0);
 
                         await Task.Delay(5);
@@ -322,7 +292,7 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
                 }
             });
 
-            kcp1.Send(sendbyte);
+            kcp1.Send(sendByte);
 
             var task = Task.Run(async () =>
             {
@@ -336,14 +306,10 @@ Platform assembly: C:\Program Files\Unity5.5.0\Editor\Data\Mono\lib\mono\2.0\Sys
             task.Result.ToString();
         }
 
-
         [TestMethod]
         public void TestKcpSegmentFree()
         {
             KcpSegment.FreeHGlobal(default);
         }
-
-
-
     }
 }

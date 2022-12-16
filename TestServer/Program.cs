@@ -12,7 +12,7 @@ namespace TestServer
         {
             Console.WriteLine("Hello World!");
 
-            SimpleKcpClient kcpClient = new SimpleKcpClient(40001);
+            var kcpClient = new SimpleKcpClient(40001);
             kcpClient.kcp.TraceListener = new ConsoleTraceListener();
             Task.Run(async () =>
             {

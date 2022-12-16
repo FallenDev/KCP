@@ -613,7 +613,7 @@ namespace System.Net.Sockets.Kcp
             }
             else
             {
-                int delta = (int)((uint)rtt - rx_srtt);
+                var delta = (int)((uint)rtt - rx_srtt);
 
                 if (delta < 0)
                 {
@@ -794,7 +794,7 @@ namespace System.Net.Sockets.Kcp
         protected ushort Wnd_unused()
         {
             ///此处没有加锁，所以不要内联变量，否则可能导致 判断变量和赋值变量不一致
-            int waitCount = rcv_queue.Count;
+            var waitCount = rcv_queue.Count;
 
             if (waitCount < rcv_wnd)
             {
@@ -829,14 +829,14 @@ namespace System.Net.Sockets.Kcp
                 return;
             }
 
-            ushort wnd_ = Wnd_unused();
+            var wnd_ = Wnd_unused();
 
             unsafe
             {
                 ///在栈上分配这个segment,这个segment随用随销毁，不会被保存
                 const int len = KcpSegment.LocalOffset + KcpSegment.HeadOffset;
                 var ptr = stackalloc byte[len];
-                KcpSegment seg = new KcpSegment(ptr, 0);
+                var seg = new KcpSegment(ptr, 0);
                 //seg = KcpSegment.AllocHGlobal(0);
 
                 seg.conv = conv;
@@ -1128,14 +1128,14 @@ namespace System.Net.Sockets.Kcp
                 return;
             }
 
-            ushort wnd_ = Wnd_unused();
+            var wnd_ = Wnd_unused();
 
             unsafe
             {
                 ///在栈上分配这个segment,这个segment随用随销毁，不会被保存
                 const int len = KcpSegment.LocalOffset + KcpSegment.HeadOffset;
                 var ptr = stackalloc byte[len];
-                KcpSegment seg = new KcpSegment(ptr, 0);
+                var seg = new KcpSegment(ptr, 0);
                 //seg = KcpSegment.AllocHGlobal(0);
 
                 seg.conv = conv;
@@ -1721,9 +1721,9 @@ namespace System.Net.Sockets.Kcp
                 return -1;
             }
 
-            uint prev_una = snd_una;
+            var prev_una = snd_una;
             var offset = 0;
-            int flag = 0;
+            var flag = 0;
             uint maxack = 0;
             uint latest_ts = 0;
             while (true)
@@ -1937,9 +1937,9 @@ namespace System.Net.Sockets.Kcp
                 return -1;
             }
 
-            uint prev_una = snd_una;
+            var prev_una = snd_una;
             var offset = 0;
-            int flag = 0;
+            var flag = 0;
             uint maxack = 0;
             uint latest_ts = 0;
             while (true)

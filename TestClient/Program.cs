@@ -15,7 +15,7 @@ namespace TestClient
         {
             Console.WriteLine("Press F1 send word.......");
 
-            SimpleKcpClient kcpClient = new SimpleKcpClient(50001, end);
+            var kcpClient = new SimpleKcpClient(50001, end);
             kcpClient.kcp.TraceListener = new ConsoleTraceListener();
             Task.Run(async () =>
             {

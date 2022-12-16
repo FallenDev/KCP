@@ -156,7 +156,7 @@ namespace System.Net.Sockets.Kcp
 
                 uint length = 0;
 
-                Segment[] kcpSegments = ArrayPool<Segment>.Shared.Rent(seq.frg + 1);
+                var kcpSegments = ArrayPool<Segment>.Shared.Rent(seq.frg + 1);
 
                 var index = 0;
                 foreach (var item in rcv_queue)
@@ -191,7 +191,7 @@ namespace System.Net.Sockets.Kcp
         public async ValueTask RecvAsync(IBufferWriter<byte> writer, object options = null)
         {
             var arraySegment = await recvSignal.ReadAsync().ConfigureAwait(false);
-            for (int i = arraySegment.Offset; i < arraySegment.Count; i++)
+            for (var i = arraySegment.Offset; i < arraySegment.Count; i++)
             {
                 WriteRecv(writer, arraySegment.Array[i]);
             }
@@ -210,8 +210,8 @@ namespace System.Net.Sockets.Kcp
         public async ValueTask<int> RecvAsync(ArraySegment<byte> buffer, object options = null)
         {
             var arraySegment = await recvSignal.ReadAsync().ConfigureAwait(false);
-            int start = buffer.Offset;
-            for (int i = arraySegment.Offset; i < arraySegment.Count; i++)
+            var start = buffer.Offset;
+            for (var i = arraySegment.Offset; i < arraySegment.Count; i++)
             {
                 var target = new Memory<byte>(buffer.Array, start, buffer.Array.Length - start);
 

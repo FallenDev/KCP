@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Diagnostics;
 using System.Net.Sockets.Kcp;
 using System.Text;
@@ -32,7 +31,7 @@ namespace TestKCP
         static void Main(string[] args)
         {
             Console.WriteLine(ShowThread);
-            Random random = new Random();
+            var random = new Random();
 
             var handle1 = new Handle();
             var handle2 = new Handle();
@@ -53,7 +52,7 @@ namespace TestKCP
             kcp2.WndSize(128, 128);
             //kcp2.SetMtu(512);
 
-            var sendbyte = Encoding.ASCII.GetBytes(UnitTest1.message);
+            var sendbyte = Encoding.ASCII.GetBytes(UnitTest1.Message);
 
             handle1.Out += buffer =>
             {
@@ -89,13 +88,13 @@ namespace TestKCP
                     Console.WriteLine("Resp miss");
                 }
             };
-            int count = 0;
+            var count = 0;
 
             handle1.Recv += buffer =>
             {
                 var str = Encoding.ASCII.GetString(buffer);
                 count++;
-                if (UnitTest1.message == str)
+                if (UnitTest1.Message == str)
                 {
                     Console.WriteLine($"kcp  echo----{count}");
                 }
@@ -106,7 +105,7 @@ namespace TestKCP
                 }
             };
 
-            int recvCount = 0;
+            var recvCount = 0;
             handle2.Recv += buffer =>
             {
                 recvCount++;
@@ -122,7 +121,7 @@ namespace TestKCP
             {
                 try
                 {
-                    int updateCount = 0;
+                    var updateCount = 0;
                     while (true)
                     {
                         kcp1.Update(DateTimeOffset.UtcNow);
@@ -156,7 +155,7 @@ namespace TestKCP
             {
                 try
                 {
-                    int updateCount = 0;
+                    var updateCount = 0;
                     while (true)
                     {
                         kcp2.Update(DateTimeOffset.UtcNow);

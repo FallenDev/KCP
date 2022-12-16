@@ -28,11 +28,11 @@ namespace System.Net.Sockets.Kcp
         public static KcpSegment AllocHGlobal(int appendDateSize)
         {
             var total = LocalOffset + HeadOffset + appendDateSize;
-            IntPtr intPtr = Marshal.AllocHGlobal(total);
+            var intPtr = Marshal.AllocHGlobal(total);
             unsafe
             {
                 ///清零    不知道是不是有更快的清0方法？
-                Span<byte> span = new Span<byte>(intPtr.ToPointer(), total);
+                var span = new Span<byte>(intPtr.ToPointer(), total);
                 span.Clear();
 
                 return new KcpSegment((byte*)intPtr.ToPointer(), (uint)appendDateSize);
@@ -349,7 +349,7 @@ namespace System.Net.Sockets.Kcp
                     {
                         ///要发送的数据从LocalOffset开始。
                         ///本结构体调整了要发送字段和单机使用字段的位置，让报头数据和数据连续，节约一次拷贝。
-                        Span<byte> sendDate = new Span<byte>(ptr + LocalOffset, datelen);
+                        var sendDate = new Span<byte>(ptr + LocalOffset, datelen);
                         sendDate.CopyTo(buffer);
                     }
                 }
@@ -391,7 +391,7 @@ namespace System.Net.Sockets.Kcp
                     {
                         ///要发送的数据从LocalOffset开始。
                         ///本结构体调整了要发送字段和单机使用字段的位置，让报头数据和数据连续，节约一次拷贝。
-                        Span<byte> sendDate = new Span<byte>(ptr + LocalOffset, datelen);
+                        var sendDate = new Span<byte>(ptr + LocalOffset, datelen);
                         sendDate.CopyTo(buffer);
                     }
                 }

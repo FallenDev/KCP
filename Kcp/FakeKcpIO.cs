@@ -14,7 +14,7 @@ namespace System.Net.Sockets.Kcp
         QueuePipe<byte[]> recv = new QueuePipe<byte[]>();
         public int Input(ReadOnlySpan<byte> span)
         {
-            byte[] buffer = new byte[span.Length];
+            var buffer = new byte[span.Length];
             span.CopyTo(buffer);
             recv.Write(buffer);
             return 0;
@@ -22,7 +22,7 @@ namespace System.Net.Sockets.Kcp
 
         public int Input(ReadOnlySequence<byte> span)
         {
-            byte[] buffer = new byte[span.Length];
+            var buffer = new byte[span.Length];
             span.CopyTo(buffer);
             return Input(buffer);
         }
@@ -45,7 +45,7 @@ namespace System.Net.Sockets.Kcp
         QueuePipe<byte[]> send = new QueuePipe<byte[]>();
         public int Send(ReadOnlySpan<byte> span, object options = null)
         {
-            byte[] buffer = new byte[span.Length];
+            var buffer = new byte[span.Length];
             span.CopyTo(buffer);
             send.Write(buffer);
             return 0;
@@ -53,7 +53,7 @@ namespace System.Net.Sockets.Kcp
 
         public int Send(ReadOnlySequence<byte> span, object options = null)
         {
-            byte[] buffer = new byte[span.Length];
+            var buffer = new byte[span.Length];
             span.CopyTo(buffer);
             return Send(buffer);
         }

@@ -61,10 +61,10 @@ namespace System.Net.Sockets.Kcp
 
         void Alloc()
         {
-            int count = 50;
-            IntPtr intPtr = Marshal.AllocHGlobal(blockSize * count);
+            var count = 50;
+            var intPtr = Marshal.AllocHGlobal(blockSize * count);
             header.Add(intPtr);
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 blocks.Push(intPtr + blockSize * i);
             }
@@ -98,7 +98,7 @@ namespace System.Net.Sockets.Kcp
                 }
 
                 var ptr = blocks.Pop();
-                Span<byte> span = new Span<byte>(ptr.ToPointer(), blockSize);
+                var span = new Span<byte>(ptr.ToPointer(), blockSize);
                 span.Clear();
                 return new KcpSegment((byte*)ptr.ToPointer(), (uint)appendDateSize);
             }
@@ -106,7 +106,7 @@ namespace System.Net.Sockets.Kcp
 
         public void Free(KcpSegment seg)
         {
-            IntPtr ptr = (IntPtr)seg.ptr;
+            var ptr = (IntPtr)seg.ptr;
             blocks.Push(ptr);
         }
 
