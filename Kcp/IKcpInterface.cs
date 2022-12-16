@@ -5,26 +5,25 @@ using System.Buffers;
 namespace System.Net.Sockets.Kcp
 {
     /// <summary>
-    /// Kcp回调
+    /// KCP Call back
     /// </summary>
     public interface IKcpCallback
     {
         /// <summary>
-        /// kcp 发送方向输出
+        /// Send direction output
         /// </summary>
-        /// <param name="buffer">kcp 交出发送缓冲区控制权，缓冲区来自<see cref="RentBuffer(int)"/></param>
-        /// <param name="avalidLength">数据的有效长度</param>
-        /// <returns>不需要返回值</returns>
-        /// <remarks>通过增加 avalidLength 能够在协议栈中有效的减少数据拷贝</remarks>
+        /// <param name="buffer">Hand over control of the send buffer, buffer from <see cref="IRentable.RentBuffer(int)"/></param>
+        /// <param name="avalidLength">Effective length of data</param>
+        /// <remarks>By increasing aValidLength, data copying can be effectively reduced in the protocol stack</remarks>
         void Output(BufferOwner buffer, int avalidLength);
     }
 
     /// <summary>
-    /// Kcp回调
+    /// KCP Call back
     /// </summary>
     /// <remarks>
-    /// 失败设计，<see cref="KcpOutputWriter.Output(BufferOwner, int)"/>。IMemoryOwner是没有办法代替的。
-    /// 这里只相当于把 IKcpCallback 和 IRentable 和并。
+    /// Failed design <see cref="KcpOutputWriter.Output(BufferOwner, int)"/>. IMemoryOwner there is no way to replace,
+    /// here is only equivalent to IKcpCallback and IRentable
     /// </remarks>
     public interface IKcpOutputWriter : IBufferWriter<byte>
     {
@@ -33,12 +32,12 @@ namespace System.Net.Sockets.Kcp
     }
 
     /// <summary>
-    /// 外部提供缓冲区,可以在外部链接一个内存池
+    /// Provide buffers externally, you can link a memory pool externally
     /// </summary>
     public interface IRentable
     {
         /// <summary>
-        /// 外部提供缓冲区,可以在外部链接一个内存池
+        /// Provide buffers externally, you can link a memory pool externally
         /// </summary>
         BufferOwner RentBuffer(int length);
     }
@@ -46,33 +45,30 @@ namespace System.Net.Sockets.Kcp
     public interface IKcpSetting
     {
         int Interval(int interval);
+
         /// <summary>
-        /// fastest: ikcp_nodelay(kcp, 1, 20, 2, 1)
+        /// Fastest: ikcp_nodelay(kcp, 1, 20, 2, 1)
         /// </summary>
         /// <param name="nodelay">0:disable(default), 1:enable</param>
-        /// <param name="interval">internal update timer interval in millisec, default is 100ms</param>
+        /// <param name="interval">internal update timer interval in millisecond, default is 100ms</param>
         /// <param name="resend">0:disable fast resend(default), 1:enable fast resend</param>
         /// <param name="nc">0:normal congestion control(default), 1:disable congestion control</param>
-        /// <returns></returns>
         int NoDelay(int nodelay, int interval, int resend, int nc);
+
         /// <summary>
-        /// change MTU size, default is 1400
-        /// <para>** 这个方法不是线程安全的。请在没有发送和接收时调用 。</para>
+        /// Change MTU size, default is 1400
+        /// <para>** This method is not thread-safe. Call it when there is no sending or receiving</para>
         /// </summary>
-        /// <param name="mtu"></param>
-        /// <returns></returns>
         /// <remarks>
-        /// 如果没有必要，不要修改Mtu。过小的Mtu会导致分片数大于接收窗口，造成kcp阻塞冻结。
+        /// Do not modify Mtu if not necessary. Too small MTU will cause the number of fragments to be larger than the receiving window, causing KCP blocking, freezing
         /// </remarks>
         int SetMtu(int mtu = 1400);
+
         /// <summary>
-        /// set maximum window size: sndwnd=32, rcvwnd=128 by default
+        /// Set maximum window size: sndwnd=32, rcvwnd=128 by default
         /// </summary>
-        /// <param name="sndwnd"></param>
-        /// <param name="rcvwnd"></param>
-        /// <returns></returns>
         /// <remarks>
-        /// 如果没有必要请不要修改。注意确保接收窗口必须大于最大分片数。
+        /// Do not modify if not necessary. Note: The receiving window must be larger than the maximum number of fragments
         /// </remarks>
         int WndSize(int sndwnd = 32, int rcvwnd = 128);
     }
@@ -85,59 +81,48 @@ namespace System.Net.Sockets.Kcp
     public interface IKcpSendable
     {
         /// <summary>
-        /// 将要发送到网络的数据Send到kcp协议中
+        /// Send the data to be sent to the network to the KCP protocol
         /// </summary>
-        /// <param name="span"></param>
-        /// <param name="options"></param>
         int Send(ReadOnlySpan<byte> span, object options = null);
+
         /// <summary>
-        /// 将要发送到网络的数据Send到kcp协议中
+        /// Send the data to be sent to the network to the KCP protocol
         /// </summary>
-        /// <param name="span"></param>
-        /// <param name="options"></param>
         int Send(ReadOnlySequence<byte> span, object options = null);
     }
 
     public interface IKcpInputable
     {
         /// <summary>
-        /// 下层收到数据后添加到kcp协议中
+        /// After the lower layer receives the data, it is added to the KCP protocol
         /// </summary>
-        /// <param name="span"></param>
         int Input(ReadOnlySpan<byte> span);
+
         /// <summary>
-        /// 下层收到数据后添加到kcp协议中
+        /// After the lower layer receives the data, it is added to the KCP protocol
         /// </summary>
-        /// <param name="span"></param>
         int Input(ReadOnlySequence<byte> span);
     }
 
     /// <summary>
-    /// kcp协议输入输出标准接口
+    /// KCP protocol input and output standard interface
     /// </summary>
     public interface IKcpIO : IKcpSendable, IKcpInputable
     {
         /// <summary>
-        /// 从kcp中取出一个整合完毕的数据包
+        /// Take an integrated packet from KCP
         /// </summary>
-        /// <returns></returns>
         ValueTask RecvAsync(IBufferWriter<byte> writer, object options = null);
 
         /// <summary>
-        /// 从kcp中取出一个整合完毕的数据包
+        /// Take an integrated packet from KCP
         /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name=""></param>
-        /// <param name="options"></param>
-        /// <returns>接收数据长度</returns>
+        /// <returns>Data length</returns>
         ValueTask<int> RecvAsync(ArraySegment<byte> buffer, object options = null);
 
         /// <summary>
-        /// 从kcp协议中取出需要发送到网络的数据。
+        /// Take out the data that needs to be sent to the network from the KCP protocol.
         /// </summary>
-        /// <param name="writer"></param>
-        /// <param name="options"></param>
-        /// <returns></returns>
         ValueTask OutputAsync(IBufferWriter<byte> writer, object options = null);
     }
 

@@ -1,78 +1,88 @@
 ﻿namespace System.Net.Sockets.Kcp
 {
     /// <summary>
-    /// Kcp报头
+    /// KCP Header
     /// https://zhuanlan.zhihu.com/p/559191428
     /// </summary>
     public interface IKcpHeader
     {
         /// <summary>
-        /// 会话编号，两方一致才会通信
+        /// Session number, the two parties will communicate only when they match
         /// </summary>
         uint conv { get; set; }
+
         /// <summary>
-        /// 指令类型
+        /// Command Type
         /// </summary>
         /// <remarks>
-        /// <para/> IKCP_CMD_PUSH = 81                 // cmd: push data 数据报文
-        /// <para/> IKCP_CMD_ACK  = 82                 // cmd: ack 确认报文
-        /// <para/> IKCP_CMD_WASK = 83                 // cmd: window probe (ask) 窗口探测报文,询问对端剩余接收窗口的大小.
-        /// <para/> IKCP_CMD_WINS = 84                 // cmd: window size (tell) 窗口通知报文,通知对端剩余接收窗口的大小.
+        /// <para/> IKCP_CMD_PUSH = 81   // cmd: push data datagram
+        /// <para/> IKCP_CMD_ACK  = 82   // cmd: ack confirmation message
+        /// <para/> IKCP_CMD_WASK = 83   // cmd: window probe (ask) Window detection message, inquiring about the size of the remaining receiving window at the peer end.
+        /// <para/> IKCP_CMD_WINS = 84   // cmd: window size (tell) Window notification message, informing the peer of the size of the remaining receiving window.
         /// </remarks>
         byte cmd { get; set; }
+
         /// <summary>
-        /// 剩余分片数量，表示随后还有多少个报文属于同一个包。
+        /// The number of remaining fragments indicates how many subsequent packets belong to the same packet.
         /// </summary>
         byte frg { get; set; }
+
         /// <summary>
-        /// 自己可用窗口大小    
+        /// Available window size
         /// </summary>
         ushort wnd { get; set; }
+
         /// <summary>
-        /// 发送时的时间戳 <seealso cref="DateTimeOffset.ToUnixTimeMilliseconds"/>
+        /// Timestamp sent <seealso cref="DateTimeOffset.ToUnixTimeMilliseconds"/>
         /// </summary>
         uint ts { get; set; }
+
         /// <summary>
-        /// 编号 确认编号或者报文编号
+        /// Acknowledgment number or message number
         /// </summary>
         uint sn { get; set; }
+
         /// <summary>
-        /// 代表编号前面的所有报都收到了的标志
+        /// Assigned before the serial number have been received
         /// </summary>
         uint una { get; set; }
+
         /// <summary>
-        /// 数据内容长度
+        /// Data length
         /// </summary>
         uint len { get; }
     }
+
     public interface IKcpSegment : IKcpHeader
     {
         /// <summary>
-        /// 重传的时间戳。超过当前时间重发这个包
+        /// Timestamp of the retransmission. Resend this packet past the current time
         /// </summary>
         uint resendts { get; set; }
+
         /// <summary>
-        /// 超时重传时间，根据网络去定
+        /// Overtime retransmission time, according to the network to determine
         /// </summary>
         uint rto { get; set; }
+
         /// <summary>
-        /// 快速重传机制，记录被跳过的次数，超过次数进行快速重传
+        /// Fast retransmission mechanism, record the number of skipped times, and perform fast retransmission if the number is exceeded
         /// </summary>
         uint fastack { get; set; }
+
         /// <summary>
-        /// 重传次数
+        /// Number of retransmissions
         /// </summary>
         uint xmit { get; set; }
 
         /// <summary>
-        /// 数据内容
+        /// Data content
         /// </summary>
         Span<byte> data { get; }
+
         /// <summary>
-        /// 将IKcpSegment编码成字节数组，并返回总长度（包括Kcp报头）
+        /// Encode IKcpSegment into byte array and return total length (including Kcp header)
         /// </summary>
-        /// <param name="buffer"></param>
-        /// <returns></returns>
         int Encode(Span<byte> buffer);
     }
 
@@ -81,8 +91,4 @@
         Segment Alloc(int appendDateSize);
         void Free(Segment seg);
     }
-
 }
-
-
-

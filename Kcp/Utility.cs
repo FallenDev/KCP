@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
 
-//[assembly: InternalsVisibleTo("UnitTestProject1")]
-
 namespace System.Net.Sockets.Kcp
 {
     public static class KcpExtension_FDF71D0BC31D49C48EEA8FAA51F017D4
@@ -25,21 +23,13 @@ namespace System.Net.Sockets.Kcp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ConvertTime2(this in DateTimeOffset time)
         {
-#if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
             return (uint)(time.ToUnixTimeMilliseconds() & 0xffffffff);
-#else
-            return (uint)(Convert.ToInt64(time.Subtract(utc1970).TotalMilliseconds) & 0xffffffff);
-#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ConvertTime(this in DateTimeOffset time)
         {
-#if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
             return (uint)(time.ToUnixTimeMilliseconds());
-#else
-            return (uint)(Convert.ToInt64(time.Subtract(utc1970).TotalMilliseconds) & 0xffffffff);
-#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -50,10 +40,8 @@ namespace System.Net.Sockets.Kcp
             {
                 return $"sn:{segment.sn,2} una:{segment.una,2} frg:{segment.frg,2} cmd:{segment.cmd,2} len:{segment.len,2} wnd:{segment.wnd}    [ LocalValue: xmit:{segment.xmit} fastack:{segment.fastack}  rto:{segment.rto} ]";
             }
-            else
-            {
-                return $"sn:{segment.sn,2} una:{segment.una,2} frg:{segment.frg,2} cmd:{segment.cmd,2} len:{segment.len,2} wnd:{segment.wnd}";
-            }
+
+            return $"sn:{segment.sn,2} una:{segment.una,2} frg:{segment.frg,2} cmd:{segment.cmd,2} len:{segment.len,2} wnd:{segment.wnd}";
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
