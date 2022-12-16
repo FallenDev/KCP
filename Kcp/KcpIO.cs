@@ -12,7 +12,7 @@ namespace System.Net.Sockets.Kcp
     /// <typeparam name="T"></typeparam>
     internal class QueuePipe<T> : Queue<T>
     {
-        readonly object _innerLock = new object();
+        readonly object _innerLock = new();
         private TaskCompletionSource<T> source;
 
         //线程同步上下文由Task机制保证，无需额外处理
@@ -127,7 +127,7 @@ namespace System.Net.Sockets.Kcp
             }
         }
 
-        QueuePipe<ArraySegment<Segment>> recvSignal = new QueuePipe<ArraySegment<Segment>>();
+        QueuePipe<ArraySegment<Segment>> recvSignal = new();
 
         internal int TryRecv(out ArraySegment<Segment> package)
         {

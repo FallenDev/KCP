@@ -7,7 +7,7 @@ namespace System.Net.Sockets.Kcp
 {
     public static class KcpExtension_FDF71D0BC31D49C48EEA8FAA51F017D4
     {
-        private static readonly DateTime utc_time = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime utc_time = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         [Obsolete("", true)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ConvertTime(this in DateTime time)
@@ -15,7 +15,7 @@ namespace System.Net.Sockets.Kcp
             return (uint)(Convert.ToInt64(time.Subtract(utc_time).TotalMilliseconds) & 0xffffffff);
         }
 
-        private static readonly DateTimeOffset utc1970 = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        private static readonly DateTimeOffset utc1970 = new(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ConvertTimeOld(this in DateTimeOffset time)
         {

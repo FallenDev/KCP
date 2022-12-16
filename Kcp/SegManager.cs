@@ -10,7 +10,7 @@ namespace System.Net.Sockets.Kcp
     /// </summary>
     public class SimpleSegManager : ISegmentManager<KcpSegment>
     {
-        public static SimpleSegManager Default { get; } = new SimpleSegManager();
+        public static SimpleSegManager Default { get; } = new();
         public KcpSegment Alloc(int appendDateSize)
         {
             return KcpSegment.AllocHGlobal(appendDateSize);
@@ -46,14 +46,14 @@ namespace System.Net.Sockets.Kcp
     /// <remarks>需要大量测试</remarks>
     public unsafe class UnSafeSegManager : ISegmentManager<KcpSegment>
     {
-        public static UnSafeSegManager Default { get; } = new UnSafeSegManager();
+        public static UnSafeSegManager Default { get; } = new();
         /// <summary>
         /// 因为默认mtu是1400，并且内存需要内存行/内存页对齐。这里直接512对齐。
         /// </summary>
         public const int blockSize = 512 * 3;
-        public HashSet<IntPtr> header = new HashSet<IntPtr>();
-        public Stack<IntPtr> blocks = new Stack<IntPtr>();
-        public readonly object locker = new object();
+        public HashSet<IntPtr> header = new();
+        public Stack<IntPtr> blocks = new();
+        public readonly object locker = new();
         public UnSafeSegManager()
         {
             Alloc();
@@ -135,7 +135,7 @@ namespace System.Net.Sockets.Kcp
     /// </summary>
     public class PoolSegManager : ISegmentManager<PoolSegManager.Seg>
     {
-        public static PoolSegManager Default { get; } = new PoolSegManager();
+        public static PoolSegManager Default { get; } = new();
 
         /// <summary>
         /// 因为默认mtu是1400，并且内存需要内存行/内存页对齐。这里直接512对齐。
@@ -206,7 +206,7 @@ namespace System.Net.Sockets.Kcp
                 return datelen;
             }
         }
-        ConcurrentStack<Seg> Pool = new ConcurrentStack<Seg>();
+        ConcurrentStack<Seg> Pool = new();
         public Seg Alloc(int appendDateSize)
         {
             if (appendDateSize > blockSize)

@@ -4,11 +4,11 @@ using System.Threading.Tasks;
 namespace System.Net.Sockets.Kcp
 {
     /// <summary>
-    /// 用于调试的KCP IO 类，没有Kcp功能
+    /// KCP IO class for debugging, no KCP function
     /// </summary>
     public class FakeKcpIO : IKcpIO
     {
-        QueuePipe<byte[]> recv = new QueuePipe<byte[]>();
+        QueuePipe<byte[]> recv = new();
         public int Input(ReadOnlySpan<byte> span)
         {
             var buffer = new byte[span.Length];
@@ -39,7 +39,7 @@ namespace System.Net.Sockets.Kcp
             return temp.Length;
         }
 
-        QueuePipe<byte[]> send = new QueuePipe<byte[]>();
+        QueuePipe<byte[]> send = new();
         public int Send(ReadOnlySpan<byte> span, object options = null)
         {
             var buffer = new byte[span.Length];

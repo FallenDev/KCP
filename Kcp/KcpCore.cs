@@ -261,33 +261,33 @@ namespace System.Net.Sockets.Kcp
         /// 增加锁保证发送线程安全，否则可能导致2个消息的分片交替入队。
         /// <para/> 用例：普通发送和广播可能会导致多个线程同时调用Send方法。
         /// </summary>
-        protected readonly object snd_queueLock = new object();
-        protected readonly object snd_bufLock = new object();
-        protected readonly object rcv_bufLock = new object();
-        protected readonly object rcv_queueLock = new object();
+        protected readonly object snd_queueLock = new();
+        protected readonly object snd_bufLock = new();
+        protected readonly object rcv_bufLock = new();
+        protected readonly object rcv_queueLock = new();
 
         /// <summary>
         /// 发送 ack 队列 
         /// </summary>
-        protected ConcurrentQueue<(uint sn, uint ts)> acklist = new ConcurrentQueue<(uint sn, uint ts)>();
+        protected ConcurrentQueue<(uint sn, uint ts)> acklist = new();
         /// <summary>
         /// 发送等待队列
         /// </summary>
-        internal ConcurrentQueue<Segment> snd_queue = new ConcurrentQueue<Segment>();
+        internal ConcurrentQueue<Segment> snd_queue = new();
         /// <summary>
         /// 正在发送列表
         /// </summary>
-        internal LinkedList<Segment> snd_buf = new LinkedList<Segment>();
+        internal LinkedList<Segment> snd_buf = new();
         /// <summary>
         /// 正在等待触发接收回调函数消息列表
         /// <para>需要执行的操作  添加 遍历 删除</para>
         /// </summary>
-        internal List<Segment> rcv_queue = new List<Segment>();
+        internal List<Segment> rcv_queue = new();
         /// <summary>
         /// 正在等待重组消息列表
         /// <para>需要执行的操作  添加 插入 遍历 删除</para>
         /// </summary>
-        internal LinkedList<Segment> rcv_buf = new LinkedList<Segment>();
+        internal LinkedList<Segment> rcv_buf = new();
 
         /// <summary>
         /// get how many packet is waiting to be sent
