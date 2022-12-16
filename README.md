@@ -35,6 +35,10 @@ When thread 1 calls Send/Input, thread 2 is also calling Send/Input. There are l
   The method with the same name can only be called by one thread at the same time, otherwise it will cause a multi-thread error. 
 
 ## Test:
+Traverse to your compiled Test Client project & Test Server project. Run both, and follow the prompts on Test Client Console.
+
+![image](https://user-images.githubusercontent.com/12104989/208140809-ed5cedc2-f878-4e98-9311-66aee2d5b413.png)
+
 [[Fixed]~~ Two Kcp echo tests in the same process, use at least 3 threads, otherwise it may deadlock.  ~~](Image/deadlock.jpg)
 
 Execute dotnet test under the path of UnitTestProject1 to perform multi-framework testing.  (need to install dotnetcoreSDK)
