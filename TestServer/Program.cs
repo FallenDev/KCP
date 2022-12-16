@@ -7,12 +7,13 @@ namespace TestServer
 {
     class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Console.WriteLine("Hello World!");
 
             var kcpClient = new SimpleKcpClient(40001);
             kcpClient.kcp.TraceListener = new ConsoleTraceListener();
+
             Task.Run(async () =>
             {
                 while (true)
@@ -32,13 +33,10 @@ namespace TestServer
             {
                 var res = await client.ReceiveAsync();
                 var str = System.Text.Encoding.UTF8.GetString(res);
-                if ("发送一条消息" == str)
-                {
-                    Console.WriteLine(str);
-
-                    var buffer = System.Text.Encoding.UTF8.GetBytes("回复一条消息");
-                    client.SendAsync(buffer, buffer.Length);
-                }
+                if ("Send a message" != str) continue;
+                Console.WriteLine(str);
+                var buffer = System.Text.Encoding.UTF8.GetBytes("Reply to a message");
+                client.SendAsync(buffer, buffer.Length);
             }
         }
     }

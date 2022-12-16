@@ -67,7 +67,7 @@ namespace System.Net.Sockets.Kcp
         {
             lock (_innerLock)
             {
-                if (this.Count > 0)
+                if (Count > 0)
                 {
                     var next = Dequeue();
                     return Task.FromResult(next);

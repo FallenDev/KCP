@@ -1008,10 +1008,10 @@ namespace System.Net.Sockets.Kcp
                         //发送过的, 但是在 RTO 内未收到 ACK 的报文, 需要重传;
                         needsend = true;
                         segment.xmit++;
-                        this.xmit++;
+                        xmit++;
                         if (nodelay == 0)
                         {
-                            segment.rto += Math.Max(segment.rto, rx_rto);
+                            segment.rto += Max(segment.rto, rx_rto);
                         }
                         else
                         {
@@ -1295,10 +1295,10 @@ namespace System.Net.Sockets.Kcp
                         //发送过的, 但是在 RTO 内未收到 ACK 的报文, 需要重传;
                         needsend = true;
                         segment.xmit++;
-                        this.xmit++;
+                        xmit++;
                         if (nodelay == 0)
                         {
-                            segment.rto += Math.Max(segment.rto, rx_rto);
+                            segment.rto += Max(segment.rto, rx_rto);
                         }
                         else
                         {
@@ -1877,7 +1877,7 @@ namespace System.Net.Sockets.Kcp
                 Parse_fastack(maxack, latest_ts);
             }
 
-            if (Itimediff(this.snd_una, prev_una) > 0)
+            if (Itimediff(snd_una, prev_una) > 0)
             {
                 if (cwnd < rmt_wnd)
                 {
@@ -2094,7 +2094,7 @@ namespace System.Net.Sockets.Kcp
                 Parse_fastack(maxack, latest_ts);
             }
 
-            if (Itimediff(this.snd_una, prev_una) > 0)
+            if (Itimediff(snd_una, prev_una) > 0)
             {
                 if (cwnd < rmt_wnd)
                 {

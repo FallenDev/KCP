@@ -22,7 +22,7 @@ namespace System.Net.Sockets.Kcp.Simple
         {
             client = new UdpClient(port);
             kcp = new SimpleSegManager.Kcp(2001, this);
-            this.EndPoint = endPoint;
+            EndPoint = endPoint;
             BeginRecv();
         }
 

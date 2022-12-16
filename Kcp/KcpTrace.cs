@@ -21,7 +21,7 @@
         }
 
 #if NETSTANDARD2_0_OR_GREATER || NET5_0_OR_GREATER
-        public System.Diagnostics.TraceListener TraceListener { get; set; }
+        public Diagnostics.TraceListener TraceListener { get; set; }
 #endif
 
         public virtual void LogFail(string message)

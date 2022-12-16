@@ -15,7 +15,7 @@ namespace System.Net.Sockets.Kcp
         internal readonly unsafe byte* ptr;
         public unsafe KcpSegment(byte* intPtr, uint appendDateSize)
         {
-            this.ptr = intPtr;
+            ptr = intPtr;
             len = appendDateSize;
         }
 
