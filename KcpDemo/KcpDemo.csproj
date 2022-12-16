@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KCP\Kcp.csproj" />
-    <ProjectReference Include="..\UnitTestProject1\UnitTestProject1.csproj" />
+    <ProjectReference Include="..\UnitTestProject1\KcpTest.csproj" />
   </ItemGroup>
 
 </Project>

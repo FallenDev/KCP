@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace System.Net.Sockets.Kcp.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class HeaderAndKcpTest
     {
         [TestMethod]
         public void ConvertTimeTest()
