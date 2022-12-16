@@ -1,7 +1,7 @@
-# KCP C# version.
-Works out of the box. You can also use Nuget to search for KCP.
+# KCP C# .NET 7 
+Works out of the box for client & server communication. This implementation is using .NET 7, support for older frameworks was removed.
 
-## Feature：
+## Features:
 
 - Asynchronous API standard interface IKcpIO.cs
   - ValueTask Recv(IBufferWriter<byte> writer, object option = null);
@@ -12,19 +12,19 @@ Works out of the box. You can also use Nuget to search for KCP.
   - `KcpIO<Segment>` : `KcpCore<Segment>`, IKcpIO  where Segment : IKcpSegment
   - `Kcp<Segment>` : `KcpCore<Segment>` where Segment:IKcpSegment
 
-## Link:
+## Links:
 
 c: skywind3000 [KCP](https://github.com/skywind3000/kcp)  
 go: xtaci [kcp-go](https://github.com/xtaci/kcp-go)  
 
-## Illustrate:
+## Architecture:
 
 - Unsafe code and unmanaged memory are used internally, which will not cause pressure on gc.
 - Support user-defined memory management methods, if you don't want to use unsafe mode, you can use memory pool.
 - For output callback and TryRecv function. Use the RentBuffer callback to allocate memory externally. Please refer to [IMemoryOwner](https://docs.microsoft.com/en-us/dotnet/standard/memory-and-spans/memory-t-usage-guidelines) usage.
 - Support `Span<byte>`
 
-## Thread Safety
+## Thread Safety:
 Simply put: 
 When thread 1 calls Recv/Update, thread 2 is also calling Recv/Update. A large number of shared data structures are used inside the function, and if locked, performance will be seriously affected.    
 When thread 1 calls Send/Input, thread 2 is also calling Send/Input. There are locks inside the function.
@@ -34,7 +34,7 @@ When thread 1 calls Send/Input, thread 2 is also calling Send/Input. There are l
 - But `cannot` multiple threads call Recv and Update at the same time.
   The method with the same name can only be called by one thread at the same time, otherwise it will cause a multi-thread error. 
 
-## Test：
+## Test:
 [[Fixed]~~ Two Kcp echo tests in the same process, use at least 3 threads, otherwise it may deadlock.  ~~](Image/deadlock.jpg)
 
 Execute dotnet test under the path of UnitTestProject1 to perform multi-framework testing.  (need to install dotnetcoreSDK)
