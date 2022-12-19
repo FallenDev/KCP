@@ -21,7 +21,7 @@ namespace System.Net.Sockets.Kcp
         /// <summary>
         /// If the external buffer can be provided, use the external buffer, otherwise new byte[]
         /// </summary>
-        protected internal override BufferOwner CreateBuffer(int needSize)
+        protected override BufferOwner CreateBuffer(int needSize)
         {
             var res = rentable?.RentBuffer(needSize);
             if (res == null)
@@ -137,6 +137,7 @@ namespace System.Net.Sockets.Kcp
         /// </summary>
         public int Recv(Span<byte> buffer)
         {
+            // ToDo: Added lock here, original code kept it unlocked -- May cause issues
             lock (rcv_queueLock)
             {
                 if (0 == rcv_queue.Count)
@@ -157,8 +158,7 @@ namespace System.Net.Sockets.Kcp
             }
 
             // Split function
-            var recvLength = UncheckRecv(buffer);
-            return recvLength;
+            return UncheckRecv(buffer);
         }
 
         /// <summary>
@@ -166,6 +166,7 @@ namespace System.Net.Sockets.Kcp
         /// </summary>
         public int Recv(IBufferWriter<byte> writer)
         {
+            // ToDo: Added lock here, original code kept it unlocked -- May cause issues
             lock (rcv_queueLock)
             {
                 if (0 == rcv_queue.Count)
@@ -181,8 +182,7 @@ namespace System.Net.Sockets.Kcp
             }
 
             // Split function
-            var recvLength = UncheckRecv(writer);
-            return recvLength;
+            return UncheckRecv(writer);
         }
 
         /// <summary>
@@ -222,6 +222,7 @@ namespace System.Net.Sockets.Kcp
 
             #region Fast recover
 
+            // ToDo: Added lock here, original code kept it unlocked -- May cause issues
             lock (rcv_queueLock)
             {
                 if (rcv_queue.Count < rcv_wnd && recover)

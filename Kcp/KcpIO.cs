@@ -239,7 +239,7 @@ namespace System.Net.Sockets.Kcp
             Owner.Dispose();
         }
 
-        protected internal override BufferOwner CreateBuffer(int needSize)
+        protected override BufferOwner CreateBuffer(int needSize)
         {
             return MemoryPool<byte>.Shared.Rent(needSize);
         }

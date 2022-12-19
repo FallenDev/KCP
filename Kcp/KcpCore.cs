@@ -3,51 +3,53 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+
 using static System.Math;
+
 using BufferOwner = System.Buffers.IMemoryOwner<byte>;
 
 namespace System.Net.Sockets.Kcp
 {
     public abstract class KcpConst
     {
-        // 为了减少阅读难度，变量名尽量于 C版 统一
+        // In order to reduce the difficulty of reading, the variable names are as far as possible from the C version system
         /*
-        conv 会话ID
-        mtu 最大传输单元
-        mss 最大分片大小
-        state 连接状态（0xFFFFFFFF表示断开连接）
-        snd_una 第一个未确认的包
-        snd_nxt 待发送包的序号
-        rcv_nxt 待接收消息序号
-        ssthresh 拥塞窗口阈值
-        rx_rttvar ack接收rtt浮动值
-        rx_srtt ack接收rtt静态值
-        rx_rto 由ack接收延迟计算出来的复原时间
-        rx_minrto 最小复原时间
-        snd_wnd 发送窗口大小
-        rcv_wnd 接收窗口大小
-        rmt_wnd,	远端接收窗口大小
-        cwnd, 拥塞窗口大小
-        probe 探查变量，IKCP_ASK_TELL表示告知远端窗口大小。IKCP_ASK_SEND表示请求远端告知窗口大小
-        interval    内部flush刷新间隔
-        ts_flush 下次flush刷新时间戳
-        nodelay 是否启动无延迟模式
-        updated 是否调用过update函数的标识
-        ts_probe, 下次探查窗口的时间戳
-        probe_wait 探查窗口需要等待的时间
-        dead_link 最大重传次数
-        incr 可发送的最大数据量
-        fastresend 触发快速重传的重复ack个数
-        nocwnd 取消拥塞控制
-        stream 是否采用流传输模式
+        conv session ID
+        mtu maximum transmission unit
+        mss maximum fragment size
+        state Connection status (0xFFFFFFFF means disconnection)
+        snd_una first unacknowledged packet
+        snd_nxt the sequence number of the packet to be sent
+        rcv_nxt message sequence number to be received
+        ssthresh congestion window threshold
+        rx_rttvar ack receives rtt float value
+        rx_srtt ack receives rtt static value
+        rx_rto is the recovery time calculated from the ack reception delay
+        rx_minrto minimum recovery time
+        snd_wnd send window size
+        rcv_wnd receive window size
+        rmt_wnd, remote receive window size
+        cwnd, congestion window size
+        probe Probe variable, IKCP_ASK_TELL means to inform the remote window size. IKCP_ASK_SEND means to request the remote end to inform the window size
+        interval Internal flush refresh interval
+        ts_flush The next flush refreshes the timestamp
+        nodelay starts no-delay mode
+        updated the update function has been called
+        ts_probe, the timestamp of the next probe window
+        probe_wait The time the probe window needs to wait
+        dead_link maximum number of retransmissions
+        incr the maximum amount of data that can be sent
+        fastresend The number of repeated acks that trigger fast retransmission
+        nocwnd cancel congestion control
+        stream adopts streaming mode
 
-        snd_queue 发送消息的队列
-        rcv_queue 接收消息的队列
-        snd_buf 发送消息的缓存
-        rcv_buf 接收消息的缓存
-        acklist 待发送的ack列表
-        buffer 存储消息字节流的内存
-        output udp发送消息的回调函数
+        snd_queue send message queue
+        rcv_queue queue to receive messages
+        snd_buf buffer for sending messages
+        rcv_buf buffer for receiving messages
+        acklist ack list to be sent
+        buffer memory for storing message byte streams
+        The callback function of output udp sending message
         */
 
         #region Const
@@ -56,37 +58,38 @@ namespace System.Net.Sockets.Kcp
         public const int IKCP_RTO_MIN = 100; // normal min rto
         public const int IKCP_RTO_DEF = 200;
         public const int IKCP_RTO_MAX = 60000;
+
         /// <summary>
-        /// 数据报文
+        /// Datagram
         /// </summary>
         public const int IKCP_CMD_PUSH = 81; // cmd: push data
         /// <summary>
-        /// 确认报文
+        /// Confirm message
         /// </summary>
         public const int IKCP_CMD_ACK = 82; // cmd: ack
         /// <summary>
-        /// 窗口探测报文,询问对端剩余接收窗口的大小.
+        /// Window detection message, inquiring about the size of the remaining receiving window at the peer end
         /// </summary>
         public const int IKCP_CMD_WASK = 83; // cmd: window probe (ask)
         /// <summary>
-        /// 窗口通知报文,通知对端剩余接收窗口的大小.
+        /// Window notification message, informing the peer of the size of the remaining receiving window
         /// </summary>
         public const int IKCP_CMD_WINS = 84; // cmd: window size (tell)
         /// <summary>
-        /// IKCP_ASK_SEND表示请求远端告知窗口大小
+        /// IKCP_ASK_SEND means to request the remote end to inform the window size
         /// </summary>
         public const int IKCP_ASK_SEND = 1;  // need to send IKCP_CMD_WASK
         /// <summary>
-        /// IKCP_ASK_TELL表示告知远端窗口大小。
+        /// IKCP_ASK_TELL means to inform the remote window size
         /// </summary>
         public const int IKCP_ASK_TELL = 2;  // need to send IKCP_CMD_WINS
         public const int IKCP_WND_SND = 32;
         /// <summary>
-        /// 接收窗口默认值。必须大于最大分片数
+        /// Receive window defaults. Must be greater than the maximum number of shards
         /// </summary>
         public const int IKCP_WND_RCV = 128; // must >= max fragment size
         /// <summary>
-        /// 默认最大传输单元 常见路由值 1492 1480  默认1400保证在路由层不会被分片
+        /// Default maximum transmission unit Common routing value 1492 1480 Default 1400 to ensure that it will not be fragmented at the routing layer
         /// </summary>
         public const int IKCP_MTU_DEF = 1400;
         public const int IKCP_ACK_FAST = 3;
@@ -96,16 +99,17 @@ namespace System.Net.Sockets.Kcp
         public const int IKCP_THRESH_INIT = 2;
         public const int IKCP_THRESH_MIN = 2;
         /// <summary>
-        /// 窗口探查CD
+        /// Windows Explorer CD
         /// </summary>
         public const int IKCP_PROBE_INIT = 7000;   // 7 secs to probe window size
         public const int IKCP_PROBE_LIMIT = 120000; // up to 120 secs to probe window
         public const int IKCP_FASTACK_LIMIT = 5;        // max times to trigger fastack
+
         #endregion
 
         /// <summary>
         /// <para>https://github.com/skywind3000/kcp/issues/53</para>
-        /// 按照 C版 设计，使用小端字节序
+        /// Designed according to version C, using little-endian byte order
         /// </summary>
         public static bool IsLittleEndian = true;
     }
@@ -113,153 +117,151 @@ namespace System.Net.Sockets.Kcp
     /// <summary>
     /// https://luyuhuang.tech/2020/12/09/kcp.html
     /// https://github.com/skywind3000/kcp/wiki/Network-Layer
-    /// <para>外部buffer ----拆分拷贝----等待列表 -----移动----发送列表----拷贝----发送buffer---output</para>
+    /// <para>External buffer ----split copy----wait list -----move----send list----copy----send buffer---output</para>
     /// https://github.com/skywind3000/kcp/issues/118#issuecomment-338133930
     /// </summary>
     public partial class KcpCore<Segment> : KcpConst, IKcpSetting, IKcpUpdate, IDisposable
         where Segment : IKcpSegment
     {
-        #region kcp members
+        #region KCP members
+
         /// <summary>
-        /// 频道号
+        /// channel number
         /// </summary>
         public uint conv { get; protected set; }
         /// <summary>
-        /// 最大传输单元（Maximum Transmission Unit，MTU）
+        /// Maximum Transmission Unit，MTU
         /// </summary>
         protected uint mtu;
 
         /// <summary>
-        /// 缓冲区最小大小
+        /// buffer minimum size
         /// </summary>
         protected int BufferNeedSize
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return (int)((mtu/* + IKCP_OVERHEAD*/) /** 3*/);
-            }
+            get => (int)mtu;
         }
 
         /// <summary>
-        /// 最大报文段长度
+        /// Maximum Segment Length
         /// </summary>
         protected uint mss;
         /// <summary>
-        /// 连接状态（0xFFFFFFFF表示断开连接）
+        /// Connection status (0xFFFFFFFF means disconnection)
         /// </summary>
         protected int state;
         /// <summary>
-        /// 第一个未确认的包
+        /// first unacknowledged package
         /// </summary>
         protected uint snd_una;
         /// <summary>
-        /// 待发送包的序号
+        /// The sequence number of the packet to be sent
         /// </summary>
         protected uint snd_nxt;
         /// <summary>
-        /// 下一个等待接收消息ID,待接收消息序号
+        /// The ID of the next message to be received, the sequence number of the message to be received
         /// </summary>
         protected uint rcv_nxt;
         protected uint ts_recent;
         protected uint ts_lastack;
         /// <summary>
-        /// 拥塞窗口阈值
+        /// Congestion window threshold
         /// </summary>
         protected uint ssthresh;
         /// <summary>
-        /// ack接收rtt浮动值
+        /// ack receives rtt floating value
         /// </summary>
         protected uint rx_rttval;
         /// <summary>
-        /// ack接收rtt静态值
+        /// ack receives rtt static value
         /// </summary>
         protected uint rx_srtt;
         /// <summary>
-        /// 由ack接收延迟计算出来的复原时间。Retransmission TimeOut(RTO), 超时重传时间.
+        /// Recovery time calculated from ack reception delay. Retransmission TimeOut(RTO), timeout retransmission time.
         /// </summary>
         protected uint rx_rto;
         /// <summary>
-        /// 最小复原时间
+        /// minimum recovery time
         /// </summary>
         protected uint rx_minrto;
         /// <summary>
-        /// 发送窗口大小
+        /// send window size
         /// </summary>
         protected uint snd_wnd;
         /// <summary>
-        /// 接收窗口大小
+        /// receive window size
         /// </summary>
         protected uint rcv_wnd;
         /// <summary>
-        /// 远端接收窗口大小
+        /// Remote receive window size
         /// </summary>
         protected uint rmt_wnd;
         /// <summary>
-        /// 拥塞窗口大小
+        /// congestion window size
         /// </summary>
         protected uint cwnd;
         /// <summary>
-        /// 探查变量，IKCP_ASK_TELL表示告知远端窗口大小。IKCP_ASK_SEND表示请求远端告知窗口大小
+        /// Probing variables, IKCP_ASK_TELL means telling the remote window size. IKCP_ASK_SEND means to request the remote end to inform the window size
         /// </summary>
         protected uint probe;
         protected uint current;
         /// <summary>
-        /// 内部flush刷新间隔
+        /// Internal flush refresh interval
         /// </summary>
         protected uint interval;
         /// <summary>
-        /// 下次flush刷新时间戳
+        /// The next flush refreshes the timestamp
         /// </summary>
         protected uint ts_flush;
         protected uint xmit;
         /// <summary>
-        /// 是否启动无延迟模式
+        /// Whether to enable no delay mode
         /// </summary>
         protected uint nodelay;
         /// <summary>
-        /// 是否调用过update函数的标识
+        /// Whether the update function has been called
         /// </summary>
         protected uint updated;
         /// <summary>
-        /// 下次探查窗口的时间戳
+        /// Timestamp of next probe window
         /// </summary>
         protected uint ts_probe;
         /// <summary>
-        /// 探查窗口需要等待的时间
+        /// The amount of time the probe window needs to wait
         /// </summary>
         protected uint probe_wait;
         /// <summary>
-        /// 最大重传次数
+        /// Maximum number of retransmissions
         /// </summary>
         protected uint dead_link;
         /// <summary>
-        /// 可发送的最大数据量
+        /// The maximum amount of data that can be sent
         /// </summary>
         protected uint incr;
         /// <summary>
-        /// 触发快速重传的重复ack个数
+        /// The number of repeated acks that trigger fast retransmission
         /// </summary>
         public int fastresend;
         public int fastlimit;
         /// <summary>
-        /// 取消拥塞控制
+        /// cancel congestion control
         /// </summary>
         protected int nocwnd;
         protected int logmask;
         /// <summary>
-        /// 是否采用流传输模式
+        /// Whether to use streaming mode
         /// </summary>
         public int stream;
         protected BufferOwner buffer;
 
         #endregion
 
-        #region 锁和容器
+        #region Locks and Containers
 
         /// <summary>
-        /// 增加锁保证发送线程安全，否则可能导致2个消息的分片交替入队。
-        /// <para/> 用例：普通发送和广播可能会导致多个线程同时调用Send方法。
+        /// Add a lock to ensure the safety of the sending thread, otherwise the fragments of the two messages may be enqueued alternately.
+        /// <para/> Use case: ordinary sending and broadcasting may cause multiple threads to call the Send method at the same time
         /// </summary>
         protected readonly object snd_queueLock = new();
         protected readonly object snd_bufLock = new();
@@ -267,32 +269,31 @@ namespace System.Net.Sockets.Kcp
         protected readonly object rcv_queueLock = new();
 
         /// <summary>
-        /// 发送 ack 队列 
+        /// send ack queue
         /// </summary>
         protected ConcurrentQueue<(uint sn, uint ts)> acklist = new();
         /// <summary>
-        /// 发送等待队列
+        /// send queue
         /// </summary>
         internal ConcurrentQueue<Segment> snd_queue = new();
         /// <summary>
-        /// 正在发送列表
+        /// sending list
         /// </summary>
         internal LinkedList<Segment> snd_buf = new();
         /// <summary>
-        /// 正在等待触发接收回调函数消息列表
-        /// <para>需要执行的操作  添加 遍历 删除</para>
+        /// Waiting to be triggered to receive a list of callback function messages
+        /// <para>Action Required Add Traverse Delete</para>
         /// </summary>
         internal List<Segment> rcv_queue = new();
         /// <summary>
-        /// 正在等待重组消息列表
-        /// <para>需要执行的操作  添加 插入 遍历 删除</para>
+        /// Awaiting reorganization message list
+        /// <para>Operations to be performed Add Insert Traverse Delete</para>
         /// </summary>
         internal LinkedList<Segment> rcv_buf = new();
 
         /// <summary>
-        /// get how many packet is waiting to be sent
+        /// Get how many packet are waiting to be sent
         /// </summary>
-        /// <returns></returns>
         public int WaitSnd => snd_buf.Count + snd_queue.Count;
 
         #endregion
@@ -319,10 +320,10 @@ namespace System.Net.Sockets.Kcp
         }
 
         #region IDisposable Support
-        private bool disposedValue = false; // 要检测冗余调用
+        private bool disposedValue = false; // To detect redundant calls
 
         /// <summary>
-        /// 是否正在释放
+        /// Is it being released
         /// </summary>
         private bool m_disposing = false;
 
@@ -351,14 +352,14 @@ namespace System.Net.Sockets.Kcp
                 {
                     if (disposing)
                     {
-                        // 释放托管状态(托管对象)。
+                        // Release managed state (managed object).
                         callbackHandle = null;
                         acklist = null;
                         buffer = null;
                     }
 
-                    // 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
-                    // 将大型字段设置为 null。
+                    // Release unmanaged resources (unmanaged objects) and substitute finalizers in the following.
+                    // Set large fields to null.
                     void FreeCollection(IEnumerable<Segment> collection)
                     {
                         if (collection == null)
@@ -371,10 +372,9 @@ namespace System.Net.Sockets.Kcp
                             {
                                 SegmentManager.Free(item);
                             }
-                            catch (Exception)
+                            catch
                             {
-                                //理论上此处不会有任何异常
-                                LogFail($"此处绝不应该出现异常。 Dispose 时出现预计外异常，联系作者");
+                                // ignored
                             }
                         }
                     }
@@ -390,9 +390,9 @@ namespace System.Net.Sockets.Kcp
                             {
                                 SegmentManager.Free(segment);
                             }
-                            catch (Exception)
+                            catch
                             {
-                                //理论上这里没有任何异常；
+                                // ignored
                             }
                         }
                         snd_queue = null;
@@ -430,58 +430,46 @@ namespace System.Net.Sockets.Kcp
 
         }
 
-        // 仅当以上 Dispose(bool disposing) 拥有用于释放未托管资源的代码时才替代终结器。
+        // Dispose(bool disposing) above only replaces the finalizer if it has code for releasing unmanaged resources
         ~KcpCore()
         {
-            // 请勿更改此代码。将清理代码放入以上 Dispose(bool disposing) 中。
+            // Do not change this code. Put the cleanup code in Dispose(bool disposing) above.
             Dispose(false);
         }
 
-        // 添加此代码以正确实现可处置模式。
         /// <summary>
-        /// 释放不是严格线程安全的，尽量使用和Update相同的线程调用，
-        /// 或者等待析构时自动释放。
+        /// Release is not strictly thread-safe, try to use the same thread call as Update,
+        /// Or wait for it to be automatically released when it is destructed.
         /// </summary>
         public void Dispose()
         {
-            // 请勿更改此代码。将清理代码放入以上 Dispose(bool disposing) 中。
             Dispose(true);
-            // 如果在以上内容中替代了终结器，则取消注释以下行。
             GC.SuppressFinalize(this);
         }
 
         #endregion
 
-        internal protected IKcpCallback callbackHandle;
-        internal protected IKcpOutputWriter OutputWriter;
+        protected IKcpCallback callbackHandle;
+        private IKcpOutputWriter OutputWriter;
 
-        protected static uint Ibound(uint lower, uint middle, uint upper)
-        {
-            return Min(Max(lower, middle), upper);
-        }
+        private static uint Bound(uint lower, uint middle, uint upper) => Min(Max(lower, middle), upper);
+        private static int TimeDiff(uint later, uint earlier) => (int)(later - earlier);
+        protected virtual BufferOwner CreateBuffer(int needSize) => new KcpInnerBuffer(needSize);
 
-        protected static int Itimediff(uint later, uint earlier)
-        {
-            return ((int)(later - earlier));
-        }
-
-        internal protected virtual BufferOwner CreateBuffer(int needSize)
-        {
-            return new KcpInnerBuffer(needSize);
-        }
-
-        internal protected class KcpInnerBuffer : BufferOwner
+        protected internal class KcpInnerBuffer : BufferOwner
         {
             private readonly Memory<byte> _memory;
+            private bool _alreadyDisposed;
 
             public Memory<byte> Memory
             {
                 get
                 {
-                    if (alreadyDisposed)
+                    if (_alreadyDisposed)
                     {
                         throw new ObjectDisposedException(nameof(KcpInnerBuffer));
                     }
+
                     return _memory;
                 }
             }
@@ -491,36 +479,27 @@ namespace System.Net.Sockets.Kcp
                 _memory = new Memory<byte>(new byte[size]);
             }
 
-            bool alreadyDisposed = false;
             public void Dispose()
             {
-                alreadyDisposed = true;
+                _alreadyDisposed = true;
             }
         }
 
-
-        #region 功能逻辑
-
-        //功能函数
+        #region Functional logic
 
         /// <summary>
         /// Determine when should you invoke ikcp_update:
         /// returns when you should invoke ikcp_update in millisec, if there
         /// is no ikcp_input/_send calling. you can call ikcp_update in that
         /// time, instead of call update repeatly.
-        /// <para></para>
-        /// Important to reduce unnacessary ikcp_update invoking. use it to
+        /// Important to reduce unnecessary ikcp_update invoking. use it to
         /// schedule ikcp_update (eg. implementing an epoll-like mechanism,
         /// or optimize ikcp_update when handling massive kcp connections)
-        /// <para></para>
         /// </summary>
-        /// <param name="time"></param>
-        /// <returns></returns>
         public DateTimeOffset Check(in DateTimeOffset time)
         {
             if (CheckDispose())
             {
-                //检查释放
                 return default;
             }
 
@@ -530,29 +509,27 @@ namespace System.Net.Sockets.Kcp
             }
 
             var current_ = time.ConvertTime();
-
             var ts_flush_ = ts_flush;
-            var tm_flush_ = 0x7fffffff;
             var tm_packet = 0x7fffffff;
-            var minimal = 0;
 
-            if (Itimediff(current_, ts_flush_) >= 10000 || Itimediff(current_, ts_flush_) < -10000)
+            if (TimeDiff(current_, ts_flush_) >= 10000 || TimeDiff(current_, ts_flush_) < -10000)
             {
                 ts_flush_ = current_;
             }
 
-            if (Itimediff(current_, ts_flush_) >= 0)
+            if (TimeDiff(current_, ts_flush_) >= 0)
             {
                 return time;
             }
 
-            tm_flush_ = Itimediff(ts_flush_, current_);
+            var tm_flush_ = TimeDiff(ts_flush_, current_);
 
             lock (snd_bufLock)
             {
                 foreach (var seg in snd_buf)
                 {
-                    var diff = Itimediff(seg.resendts, current_);
+                    var diff = TimeDiff(seg.resendts, current_);
+
                     if (diff <= 0)
                     {
                         return time;
@@ -565,14 +542,13 @@ namespace System.Net.Sockets.Kcp
                 }
             }
 
-            minimal = tm_packet < tm_flush_ ? tm_packet : tm_flush_;
+            var minimal = tm_packet < tm_flush_ ? tm_packet : tm_flush_;
             if (minimal >= interval) minimal = (int)interval;
-
             return time + TimeSpan.FromMilliseconds(minimal);
         }
 
         /// <summary>
-        /// move available data from rcv_buf -> rcv_queue
+        /// Move available data from rcv_buf -> rcv_queue
         /// </summary>
         protected void Move_Rcv_buf_2_Rcv_queue()
         {
@@ -580,10 +556,12 @@ namespace System.Net.Sockets.Kcp
             {
                 while (rcv_buf.Count > 0)
                 {
-                    var seg = rcv_buf.First.Value;
+                    var seg = rcv_buf.First!.Value;
+
                     if (seg.sn == rcv_nxt && rcv_queue.Count < rcv_wnd)
                     {
                         rcv_buf.RemoveFirst();
+
                         lock (rcv_queueLock)
                         {
                             rcv_queue.Add(seg);
@@ -600,10 +578,9 @@ namespace System.Net.Sockets.Kcp
         }
 
         /// <summary>
-        /// update ack.
+        /// Update ack.
         /// </summary>
-        /// <param name="rtt"></param>
-        protected void Update_ack(int rtt)
+        private void Update_ack(int rtt)
         {
             if (rx_srtt == 0)
             {
@@ -629,21 +606,20 @@ namespace System.Net.Sockets.Kcp
             }
 
             var rto = rx_srtt + Max(interval, 4 * rx_rttval);
-
-            rx_rto = Ibound(rx_minrto, rto, IKCP_RTO_MAX);
+            rx_rto = Bound(rx_minrto, rto, IKCP_RTO_MAX);
         }
 
-        protected void Shrink_buf()
+        private void Shrink_buf()
         {
             lock (snd_bufLock)
             {
-                snd_una = snd_buf.Count > 0 ? snd_buf.First.Value.sn : snd_nxt;
+                snd_una = snd_buf.Count > 0 ? snd_buf.First!.Value.sn : snd_nxt;
             }
         }
 
-        protected void Parse_ack(uint sn)
+        private void Parse_ack(uint sn)
         {
-            if (Itimediff(sn, snd_una) < 0 || Itimediff(sn, snd_nxt) >= 0)
+            if (TimeDiff(sn, snd_una) < 0 || TimeDiff(sn, snd_nxt) >= 0)
             {
                 return;
             }
@@ -653,6 +629,7 @@ namespace System.Net.Sockets.Kcp
                 for (var p = snd_buf.First; p != null; p = p.Next)
                 {
                     var seg = p.Value;
+
                     if (sn == seg.sn)
                     {
                         snd_buf.Remove(p);
@@ -660,7 +637,7 @@ namespace System.Net.Sockets.Kcp
                         break;
                     }
 
-                    if (Itimediff(sn, seg.sn) < 0)
+                    if (TimeDiff(sn, seg.sn) < 0)
                     {
                         break;
                     }
@@ -668,15 +645,16 @@ namespace System.Net.Sockets.Kcp
             }
         }
 
-        protected void Parse_una(uint una)
+        private void Parse_una(uint una)
         {
-            /// 删除给定时间之前的片段。保留之后的片段
+            // Delete fragments older than a given time. keep the following fragment
             lock (snd_bufLock)
             {
                 while (snd_buf.First != null)
                 {
                     var seg = snd_buf.First.Value;
-                    if (Itimediff(una, seg.sn) > 0)
+
+                    if (TimeDiff(una, seg.sn) > 0)
                     {
                         snd_buf.RemoveFirst();
                         SegmentManager.Free(seg);
@@ -690,9 +668,9 @@ namespace System.Net.Sockets.Kcp
 
         }
 
-        protected void Parse_fastack(uint sn, uint ts)
+        private void Parse_fastTrack(uint sn, uint ts)
         {
-            if (Itimediff(sn, snd_una) < 0 || Itimediff(sn, snd_nxt) >= 0)
+            if (TimeDiff(sn, snd_una) < 0 || TimeDiff(sn, snd_nxt) >= 0)
             {
                 return;
             }
@@ -702,11 +680,13 @@ namespace System.Net.Sockets.Kcp
                 foreach (var item in snd_buf)
                 {
                     var seg = item;
-                    if (Itimediff(sn, seg.sn) < 0)
+
+                    if (TimeDiff(sn, seg.sn) < 0)
                     {
                         break;
                     }
-                    else if (sn != seg.sn)
+
+                    if (sn != seg.sn)
                     {
 #if !IKCP_FASTACK_CONSERVE
                         seg.fastack++;
@@ -722,25 +702,24 @@ namespace System.Net.Sockets.Kcp
         }
 
         /// <summary>
-        /// 处理下层网络收到的数据包
+        /// Process packets received by the underlying network
         /// </summary>
-        /// <param name="newseg"></param>
         internal virtual void Parse_data(Segment newseg)
         {
             var sn = newseg.sn;
 
             lock (rcv_bufLock)
             {
-                if (Itimediff(sn, rcv_nxt + rcv_wnd) >= 0 || Itimediff(sn, rcv_nxt) < 0)
+                if (TimeDiff(sn, rcv_nxt + rcv_wnd) >= 0 || TimeDiff(sn, rcv_nxt) < 0)
                 {
-                    // 如果接收到数据报文的编号大于 rcv_nxt + rcv_wnd 或小于 rcv_nxt, 这个报文就会被丢弃.
+                    // If the received data packet number is greater than rcv_nxt + rcv_wnd or less than rcv_nxt, this packet will be discarded.
                     SegmentManager.Free(newseg);
                     return;
                 }
 
                 var repeat = false;
 
-                ///检查是否重复消息和插入位置
+                // Check for duplicate messages and insertion positions
                 LinkedListNode<Segment> p;
                 for (p = rcv_buf.Last; p != null; p = p.Previous)
                 {
@@ -751,7 +730,7 @@ namespace System.Net.Sockets.Kcp
                         break;
                     }
 
-                    if (Itimediff(sn, seg.sn) > 0)
+                    if (TimeDiff(sn, seg.sn) > 0)
                     {
                         break;
                     }
@@ -769,17 +748,16 @@ namespace System.Net.Sockets.Kcp
                         rcv_buf.AddFirst(newseg);
                         if (newseg.frg + 1 > rcv_wnd)
                         {
-                            //分片数大于接收窗口，造成kcp阻塞冻结。
-                            //Console.WriteLine($"分片数大于接收窗口，造成kcp阻塞冻结。frgCount:{newseg.frg + 1}  rcv_wnd:{rcv_wnd}");
-                            //百分之百阻塞冻结，打印日志没有必要。直接抛出异常。
-                            throw new NotSupportedException($"分片数大于接收窗口，造成kcp阻塞冻结。frgCount:{newseg.frg + 1}  rcv_wnd:{rcv_wnd}");
+                            // The number of fragments is larger than the receiving window, causing kcp to block and freeze.
+                            // Console.WriteLine($"The number of fragments is larger than the receiving window, causing kcp to block and freeze. frgCount:{newseg.frg + 1} rcv_wnd:{rcv_wnd}");
+                            // 100% blocking freeze, printing logs is not necessary. Throw an exception directly.
+                            throw new NotSupportedException($"The number of fragments is larger than the receiving window, causing KCP to block and freeze, frgCount:{newseg.frg + 1}  rcv_wnd:{rcv_wnd}");
                         }
                     }
                     else
                     {
                         rcv_buf.AddAfter(p, newseg);
                     }
-
                 }
                 else
                 {
@@ -790,35 +768,30 @@ namespace System.Net.Sockets.Kcp
             Move_Rcv_buf_2_Rcv_queue();
         }
 
-        protected ushort Wnd_unused()
+        private ushort Wnd_unused()
         {
-            ///此处没有加锁，所以不要内联变量，否则可能导致 判断变量和赋值变量不一致
+            // There is no lock here, so do not inline variables, otherwise it may cause inconsistency between the judgment variable and the assigned variable
             var waitCount = rcv_queue.Count;
 
-            if (waitCount < rcv_wnd)
-            {
-                //Q:为什么要减去nrcv_que，rcv_queue中已经排好序了，还要算在接收窗口内，感觉不能理解？
-                //现在问题是如果一个超大数据包，分片数大于rcv_wnd接收窗口，会导致rcv_wnd持续为0，阻塞整个流程。
-                //个人理解，rcv_queue中的数据是已经确认的数据，无论用户是否recv，都不应该影响收发。
-                //A:现在在发送出加一个分片数检测，过大直接抛出异常。防止阻塞发送。
-                //在接收端也加一个检测，如果（frg+1）分片数 > rcv_wnd,也要抛出一个异常或者警告。至少有个提示。
+            if (waitCount >= rcv_wnd) return 0;
+            //Q: Why do you want to subtract nrcv_que, rcv_queue has already been sorted, and it should be counted in the receiving window, I feel incomprehensible?
+            //The problem now is that if a large data packet has more fragments than the rcv_wnd receiving window, rcv_wnd will continue to be 0, blocking the entire process.
+            //Personally, the data in rcv_queue is confirmed data, no matter whether the user is recv or not, it should not affect sending and receiving.
+            //A: Now add a fragment number detection when sending out, if it is too large, an exception will be thrown directly. Prevent blocking sends.
+            //Add a detection at the receiving end, if (frg+1) number of fragments > rcv_wnd, also throw an exception or warning. At least there is a hint.
 
-                /// fix https://github.com/skywind3000/kcp/issues/126
-                /// 实际上 rcv_wnd 不应该大于65535
-                var count = rcv_wnd - waitCount;
-                return (ushort)Min(count, ushort.MaxValue);
-            }
-
-            return 0;
+            /// fix https://github.com/skywind3000/kcp/issues/126
+            /// Actually rcv_wnd should not be greater than 65535
+            var count = rcv_wnd - waitCount;
+            return (ushort)Min(count, ushort.MaxValue);
         }
 
         /// <summary>
-        /// flush pending data
+        /// Flush pending data
         /// </summary>
-        protected void Flush()
+        private void Flush()
         {
             var current_ = current;
-            var buffer_ = buffer;
             var change = 0;
             var lost = 0;
             var offset = 0;
@@ -832,26 +805,21 @@ namespace System.Net.Sockets.Kcp
 
             unsafe
             {
-                ///在栈上分配这个segment,这个segment随用随销毁，不会被保存
+                // Allocate this segment on the stack, this segment will be destroyed as it is used, and will not be saved
                 const int len = KcpSegment.LocalOffset + KcpSegment.HeadOffset;
                 var ptr = stackalloc byte[len];
-                var seg = new KcpSegment(ptr, 0);
-                //seg = KcpSegment.AllocHGlobal(0);
+                var seg = new KcpSegment(ptr, 0)
+                {
+                    conv = conv,
+                    cmd = IKCP_CMD_ACK,
+                    wnd = wnd_,
+                    una = rcv_nxt
+                };
 
-                seg.conv = conv;
-                seg.cmd = IKCP_CMD_ACK;
-                //seg.frg = 0;
-                seg.wnd = wnd_;
-                seg.una = rcv_nxt;
-                //seg.len = 0;
-                //seg.sn = 0;
-                //seg.ts = 0;
-
-                #region flush acknowledges
+                #region Flush acknowledges
 
                 if (CheckDispose())
                 {
-                    //检查释放
                     return;
                 }
 
@@ -862,12 +830,6 @@ namespace System.Net.Sockets.Kcp
                         callbackHandle.Output(buffer, offset);
                         offset = 0;
                         buffer = CreateBuffer(BufferNeedSize);
-
-                        //IKcpOutputer outputer = null;
-                        //var span = outputer.GetSpan(offset);
-                        //buffer.Memory.Span.Slice(0, offset).CopyTo(span);
-                        //outputer.Advance(offset);
-                        //outputer.Flush();
                     }
 
                     seg.sn = temp.sn;
@@ -877,8 +839,8 @@ namespace System.Net.Sockets.Kcp
 
                 #endregion
 
-                #region probe window size (if remote window size equals zero)
-                // probe window size (if remote window size equals zero)
+                #region Probe window size (if remote window size equals zero)
+
                 if (rmt_wnd == 0)
                 {
                     if (probe_wait == 0)
@@ -888,7 +850,7 @@ namespace System.Net.Sockets.Kcp
                     }
                     else
                     {
-                        if (Itimediff(current, ts_probe) >= 0)
+                        if (TimeDiff(current, ts_probe) >= 0)
                         {
                             if (probe_wait < IKCP_PROBE_INIT)
                             {
@@ -912,10 +874,11 @@ namespace System.Net.Sockets.Kcp
                     ts_probe = 0;
                     probe_wait = 0;
                 }
+
                 #endregion
 
-                #region flush window probing commands
-                // flush window probing commands
+                #region Flush window probing commands
+
                 if ((probe & IKCP_ASK_SEND) != 0)
                 {
                     seg.cmd = IKCP_CMD_WASK;
@@ -941,19 +904,19 @@ namespace System.Net.Sockets.Kcp
                 }
 
                 probe = 0;
+
                 #endregion
             }
 
-            #region 刷新，将发送等待列表移动到发送列表
+            #region Refresh, move the sending waiting list to the sending list
 
-            // calculate window size
             var cwnd_ = Min(snd_wnd, rmt_wnd);
             if (nocwnd == 0)
             {
                 cwnd_ = Min(cwnd, cwnd_);
             }
 
-            while (Itimediff(snd_nxt, snd_una + cwnd_) < 0)
+            while (TimeDiff(snd_nxt, snd_una + cwnd_) < 0)
             {
                 if (snd_queue.TryDequeue(out var newseg))
                 {
@@ -981,31 +944,28 @@ namespace System.Net.Sockets.Kcp
 
             #endregion
 
-            #region 刷新 发送列表，调用Output
+            #region Refresh send list, call Output
 
-            // calculate resent
             var resent = fastresend > 0 ? (uint)fastresend : 0xffffffff;
             var rtomin = nodelay == 0 ? (rx_rto >> 3) : 0;
 
             lock (snd_bufLock)
             {
-                // flush data segments
                 foreach (var item in snd_buf)
                 {
                     var segment = item;
                     var needsend = false;
-                    var debug = Itimediff(current_, segment.resendts);
                     if (segment.xmit == 0)
                     {
-                        //新加入 snd_buf 中, 从未发送过的报文直接发送出去;
+                        // Newly added to snd_buf, the message that has never been sent is sent directly;
                         needsend = true;
                         segment.xmit++;
                         segment.rto = rx_rto;
                         segment.resendts = current_ + rx_rto + rtomin;
                     }
-                    else if (Itimediff(current_, segment.resendts) >= 0)
+                    else if (TimeDiff(current_, segment.resendts) >= 0)
                     {
-                        //发送过的, 但是在 RTO 内未收到 ACK 的报文, 需要重传;
+                        // A message that has been sent but has not received an ACK within the RTO needs to be retransmitted;
                         needsend = true;
                         segment.xmit++;
                         xmit++;
@@ -1024,7 +984,7 @@ namespace System.Net.Sockets.Kcp
                     }
                     else if (segment.fastack >= resent)
                     {
-                        //发送过的, 但是 ACK 失序若干次的报文, 需要执行快速重传.
+                        // Packets that have been sent, but the ACKs are out of order several times, need to perform fast retransmission.
                         if (segment.xmit <= fastlimit
                             || fastlimit <= 0)
                         {
@@ -1036,41 +996,37 @@ namespace System.Net.Sockets.Kcp
                         }
                     }
 
-                    if (needsend)
+                    if (!needsend) continue;
+                    segment.ts = current_;
+                    segment.wnd = wnd_;
+                    segment.una = rcv_nxt;
+
+                    var need = IKCP_OVERHEAD + segment.len;
+                    if (offset + need > mtu)
                     {
-                        segment.ts = current_;
-                        segment.wnd = wnd_;
-                        segment.una = rcv_nxt;
+                        callbackHandle.Output(buffer, offset);
+                        offset = 0;
+                        buffer = CreateBuffer(BufferNeedSize);
+                    }
 
-                        var need = IKCP_OVERHEAD + segment.len;
-                        if (offset + need > mtu)
-                        {
-                            callbackHandle.Output(buffer, offset);
-                            offset = 0;
-                            buffer = CreateBuffer(BufferNeedSize);
-                        }
+                    offset += segment.Encode(buffer.Memory.Span.Slice(offset));
 
-                        offset += segment.Encode(buffer.Memory.Span.Slice(offset));
+                    if (CanLog(KcpLogMask.IKCP_LOG_NEED_SEND))
+                    {
+                        LogWriteLine($"{segment.ToLogString(true)}", KcpLogMask.IKCP_LOG_NEED_SEND.ToString());
+                    }
 
-                        if (CanLog(KcpLogMask.IKCP_LOG_NEED_SEND))
-                        {
-                            LogWriteLine($"{segment.ToLogString(true)}", KcpLogMask.IKCP_LOG_NEED_SEND.ToString());
-                        }
+                    if (segment.xmit < dead_link) continue;
+                    state = -1;
 
-                        if (segment.xmit >= dead_link)
-                        {
-                            state = -1;
-
-                            if (CanLog(KcpLogMask.IKCP_LOG_DEAD_LINK))
-                            {
-                                LogWriteLine($"state = -1; xmit:{segment.xmit} >= dead_link:{dead_link}", KcpLogMask.IKCP_LOG_DEAD_LINK.ToString());
-                            }
-                        }
+                    if (CanLog(KcpLogMask.IKCP_LOG_DEAD_LINK))
+                    {
+                        LogWriteLine($"state = -1; xmit:{segment.xmit} >= dead_link:{dead_link}", KcpLogMask.IKCP_LOG_DEAD_LINK.ToString());
                     }
                 }
             }
 
-            // flash remain segments
+            // Flash remain segments
             if (offset > 0)
             {
                 callbackHandle.Output(buffer, offset);
@@ -1080,8 +1036,8 @@ namespace System.Net.Sockets.Kcp
 
             #endregion
 
-            #region update ssthresh
-            // update ssthresh 根据丢包情况计算 ssthresh 和 cwnd.
+            #region Update ssthresh
+
             if (change != 0)
             {
                 var inflight = snd_nxt - snd_una;
@@ -1107,13 +1063,11 @@ namespace System.Net.Sockets.Kcp
                 incr = mss;
             }
 
-            if (cwnd < 1)
-            {
-                cwnd = 1;
-                incr = mss;
-            }
-            #endregion
+            if (cwnd >= 1) return;
+            cwnd = 1;
+            incr = mss;
 
+            #endregion
         }
 
         protected void Flush2()
@@ -1131,26 +1085,21 @@ namespace System.Net.Sockets.Kcp
 
             unsafe
             {
-                ///在栈上分配这个segment,这个segment随用随销毁，不会被保存
+                // Allocate this segment on the stack, this segment will be destroyed as it is used, and will not be saved
                 const int len = KcpSegment.LocalOffset + KcpSegment.HeadOffset;
                 var ptr = stackalloc byte[len];
-                var seg = new KcpSegment(ptr, 0);
-                //seg = KcpSegment.AllocHGlobal(0);
+                var seg = new KcpSegment(ptr, 0)
+                {
+                    conv = conv,
+                    cmd = IKCP_CMD_ACK,
+                    wnd = wnd_,
+                    una = rcv_nxt
+                };
 
-                seg.conv = conv;
-                seg.cmd = IKCP_CMD_ACK;
-                //seg.frg = 0;
-                seg.wnd = wnd_;
-                seg.una = rcv_nxt;
-                //seg.len = 0;
-                //seg.sn = 0;
-                //seg.ts = 0;
-
-                #region flush acknowledges
+                #region Flush Acknowledges
 
                 if (CheckDispose())
                 {
-                    //检查释放
                     return;
                 }
 
@@ -1168,8 +1117,8 @@ namespace System.Net.Sockets.Kcp
 
                 #endregion
 
-                #region probe window size (if remote window size equals zero)
-                // probe window size (if remote window size equals zero)
+                #region Probe window size (if remote window size equals zero)
+
                 if (rmt_wnd == 0)
                 {
                     if (probe_wait == 0)
@@ -1179,7 +1128,7 @@ namespace System.Net.Sockets.Kcp
                     }
                     else
                     {
-                        if (Itimediff(current, ts_probe) >= 0)
+                        if (TimeDiff(current, ts_probe) >= 0)
                         {
                             if (probe_wait < IKCP_PROBE_INIT)
                             {
@@ -1203,10 +1152,11 @@ namespace System.Net.Sockets.Kcp
                     ts_probe = 0;
                     probe_wait = 0;
                 }
+
                 #endregion
 
-                #region flush window probing commands
-                // flush window probing commands
+                #region Flush window probing commands
+
                 if ((probe & IKCP_ASK_SEND) != 0)
                 {
                     seg.cmd = IKCP_CMD_WASK;
@@ -1228,19 +1178,19 @@ namespace System.Net.Sockets.Kcp
                 }
 
                 probe = 0;
+
                 #endregion
             }
 
-            #region 刷新，将发送等待列表移动到发送列表
+            #region Refresh, move the sending waiting list to the sending list
 
-            // calculate window size
             var cwnd_ = Min(snd_wnd, rmt_wnd);
             if (nocwnd == 0)
             {
                 cwnd_ = Min(cwnd, cwnd_);
             }
 
-            while (Itimediff(snd_nxt, snd_una + cwnd_) < 0)
+            while (TimeDiff(snd_nxt, snd_una + cwnd_) < 0)
             {
                 if (snd_queue.TryDequeue(out var newseg))
                 {
@@ -1268,31 +1218,29 @@ namespace System.Net.Sockets.Kcp
 
             #endregion
 
-            #region 刷新 发送列表，调用Output
+            #region Refresh send list, call Output
 
-            // calculate resent
             var resent = fastresend > 0 ? (uint)fastresend : 0xffffffff;
             var rtomin = nodelay == 0 ? (rx_rto >> 3) : 0;
 
             lock (snd_bufLock)
             {
-                // flush data segments
+                // Flush data segments
                 foreach (var item in snd_buf)
                 {
                     var segment = item;
                     var needsend = false;
-                    var debug = Itimediff(current_, segment.resendts);
                     if (segment.xmit == 0)
                     {
-                        //新加入 snd_buf 中, 从未发送过的报文直接发送出去;
+                        // Newly added to snd_buf, the message that has never been sent is sent directly;
                         needsend = true;
                         segment.xmit++;
                         segment.rto = rx_rto;
                         segment.resendts = current_ + rx_rto + rtomin;
                     }
-                    else if (Itimediff(current_, segment.resendts) >= 0)
+                    else if (TimeDiff(current_, segment.resendts) >= 0)
                     {
-                        //发送过的, 但是在 RTO 内未收到 ACK 的报文, 需要重传;
+                        // A message that has been sent but has not received an ACK within the RTO needs to be retransmitted;
                         needsend = true;
                         segment.xmit++;
                         xmit++;
@@ -1311,7 +1259,7 @@ namespace System.Net.Sockets.Kcp
                     }
                     else if (segment.fastack >= resent)
                     {
-                        //发送过的, 但是 ACK 失序若干次的报文, 需要执行快速重传.
+                        // Packets that have been sent, but the ACKs are out of order several times, need to perform fast retransmission.
                         if (segment.xmit <= fastlimit
                             || fastlimit <= 0)
                         {
@@ -1356,7 +1304,7 @@ namespace System.Net.Sockets.Kcp
             }
 
 
-            // flash remain segments
+            // Flash remain segments
             if (OutputWriter.UnflushedBytes > 0)
             {
                 OutputWriter.Flush();
@@ -1365,7 +1313,8 @@ namespace System.Net.Sockets.Kcp
             #endregion
 
             #region update ssthresh
-            // update ssthresh 根据丢包情况计算 ssthresh 和 cwnd.
+
+            // Update ssthresh calculates ssthresh and cwnd based on packet loss.
             if (change != 0)
             {
                 var inflight = snd_nxt - snd_una;
@@ -1391,11 +1340,10 @@ namespace System.Net.Sockets.Kcp
                 incr = mss;
             }
 
-            if (cwnd < 1)
-            {
-                cwnd = 1;
-                incr = mss;
-            }
+            if (cwnd >= 1) return;
+            cwnd = 1;
+            incr = mss;
+
             #endregion
 
         }
@@ -1409,7 +1357,6 @@ namespace System.Net.Sockets.Kcp
         {
             if (CheckDispose())
             {
-                //检查释放
                 return;
             }
 
@@ -1421,7 +1368,7 @@ namespace System.Net.Sockets.Kcp
                 ts_flush = current;
             }
 
-            var slap = Itimediff(current, ts_flush);
+            var slap = TimeDiff(current, ts_flush);
 
             if (slap >= 10000 || slap < -10000)
             {
@@ -1432,7 +1379,7 @@ namespace System.Net.Sockets.Kcp
             if (slap >= 0)
             {
                 ts_flush += interval;
-                if (Itimediff(current, ts_flush) >= 0)
+                if (TimeDiff(current, ts_flush) >= 0)
                 {
                     ts_flush = current + interval;
                 }
@@ -1443,16 +1390,17 @@ namespace System.Net.Sockets.Kcp
 
         #endregion
 
-        #region 设置控制
+        #region Setting control
 
         public int SetMtu(int mtu = IKCP_MTU_DEF)
         {
-            if (mtu < 50 || mtu < IKCP_OVERHEAD)
+            if (mtu is < 50 or < IKCP_OVERHEAD)
             {
                 return -1;
             }
 
             var buffer_ = CreateBuffer(BufferNeedSize);
+
             if (null == buffer_)
             {
                 return -2;
@@ -1465,23 +1413,15 @@ namespace System.Net.Sockets.Kcp
             return 0;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="interval_"></param>
-        /// <returns></returns>
         public int Interval(int interval_)
         {
-            if (interval_ > 5000)
+            interval_ = interval_ switch
             {
-                interval_ = 5000;
-            }
-            else if (interval_ < 0)
-            {
-                /// 将最小值 10 改为 0；
-                ///在特殊形况下允许CPU满负荷运转；
-                interval_ = 0;
-            }
+                > 5000 => 5000,
+                < 0 => 0,
+                _ => interval_
+            };
+
             interval = (uint)interval_;
             return 0;
         }
@@ -1492,14 +1432,7 @@ namespace System.Net.Sockets.Kcp
             if (nodelay_ > 0)
             {
                 nodelay = (uint)nodelay_;
-                if (nodelay_ != 0)
-                {
-                    rx_minrto = IKCP_RTO_NDL;
-                }
-                else
-                {
-                    rx_minrto = IKCP_RTO_MIN;
-                }
+                rx_minrto = IKCP_RTO_NDL;
             }
 
             if (resend_ >= 0)
@@ -1531,23 +1464,17 @@ namespace System.Net.Sockets.Kcp
         }
 
         #endregion
-
-
     }
 
     public partial class KcpCore<Segment> : IKcpSendable
     {
         /// <summary>
-        /// user/upper level send, returns below zero for error
+        /// User/Upper Level send, returns below zero for error
         /// </summary>
-        /// <param name="span"></param>
-        /// <param name="options"></param>
-        /// <returns></returns>
         public int Send(ReadOnlySpan<byte> span, object options = null)
         {
             if (CheckDispose())
             {
-                //检查释放
                 return -4;
             }
 
@@ -1556,19 +1483,15 @@ namespace System.Net.Sockets.Kcp
                 throw new InvalidOperationException($" mss <= 0 ");
             }
 
-
             if (span.Length == 0)
             {
                 return -1;
             }
+
             var offset = 0;
             int count;
 
-            #region append to previous segment in streaming mode (if possible)
-            /// 基于线程安全和数据结构的等原因,移除了追加数据到最后一个包行为。
-            #endregion
-
-            #region fragment
+            #region Fragment
 
             if (span.Length <= mss)
             {
@@ -1579,14 +1502,13 @@ namespace System.Net.Sockets.Kcp
                 count = (int)(span.Length + mss - 1) / (int)mss;
             }
 
-            if (count > IKCP_WND_RCV)
+            switch (count)
             {
-                return -2;
-            }
-
-            if (count == 0)
-            {
-                count = 1;
+                case > IKCP_WND_RCV:
+                    return -2;
+                case 0:
+                    count = 1;
+                    break;
             }
 
             lock (snd_queueLock)
@@ -1600,7 +1522,7 @@ namespace System.Net.Sockets.Kcp
                     }
                     else
                     {
-                        size = (int)span.Length - offset;
+                        size = span.Length - offset;
                     }
 
                     var seg = SegmentManager.Alloc(size);
@@ -1616,16 +1538,10 @@ namespace System.Net.Sockets.Kcp
             return 0;
         }
 
-        //public int Send(Span<byte> span)
-        //{
-        //    return Send((ReadOnlySpan<byte>)span);
-        //}
-
         public int Send(ReadOnlySequence<byte> span, object options = null)
         {
             if (CheckDispose())
             {
-                //检查释放
                 return -4;
             }
 
@@ -1634,19 +1550,15 @@ namespace System.Net.Sockets.Kcp
                 throw new InvalidOperationException($" mss <= 0 ");
             }
 
-
             if (span.Length == 0)
             {
                 return -1;
             }
+
             var offset = 0;
             int count;
 
-            #region append to previous segment in streaming mode (if possible)
-            /// 基于线程安全和数据结构的等原因,移除了追加数据到最后一个包行为。
-            #endregion
-
-            #region fragment
+            #region Fragment
 
             if (span.Length <= mss)
             {
@@ -1657,14 +1569,13 @@ namespace System.Net.Sockets.Kcp
                 count = (int)(span.Length + mss - 1) / (int)mss;
             }
 
-            if (count > IKCP_WND_RCV)
+            switch (count)
             {
-                return -2;
-            }
-
-            if (count == 0)
-            {
-                count = 1;
+                case > IKCP_WND_RCV:
+                    return -2;
+                case 0:
+                    count = 1;
+                    break;
             }
 
             lock (snd_queueLock)
@@ -1698,15 +1609,12 @@ namespace System.Net.Sockets.Kcp
     public partial class KcpCore<Segment> : IKcpInputable
     {
         /// <summary>
-        /// when you received a low level packet (eg. UDP packet), call it
+        /// When you receive a low level packet (eg. UDP packet), call it
         /// </summary>
-        /// <param name="span"></param>
-        /// <returns></returns>
         public int Input(ReadOnlySpan<byte> span)
         {
             if (CheckDispose())
             {
-                //检查释放
                 return -4;
             }
 
@@ -1725,6 +1633,7 @@ namespace System.Net.Sockets.Kcp
             var flag = 0;
             uint maxack = 0;
             uint latest_ts = 0;
+
             while (true)
             {
                 uint ts = 0;
@@ -1778,26 +1687,29 @@ namespace System.Net.Sockets.Kcp
                 Parse_una(una);
                 Shrink_buf();
 
-                if (IKCP_CMD_ACK == cmd)
+                switch (cmd)
                 {
-                    if (Itimediff(current, ts) >= 0)
+                    case IKCP_CMD_ACK:
                     {
-                        Update_ack(Itimediff(current, ts));
-                    }
-                    Parse_ack(sn);
-                    Shrink_buf();
+                        if (TimeDiff(current, ts) >= 0)
+                        {
+                            Update_ack(TimeDiff(current, ts));
+                        }
 
-                    if (flag == 0)
-                    {
-                        flag = 1;
-                        maxack = sn;
-                        latest_ts = ts;
-                    }
-                    else if (Itimediff(sn, maxack) > 0)
-                    {
+                        Parse_ack(sn);
+                        Shrink_buf();
+
+                        if (flag == 0)
+                        {
+                            flag = 1;
+                            maxack = sn;
+                            latest_ts = ts;
+                        }
+                        else if (TimeDiff(sn, maxack) > 0)
+                        {
 #if !IKCP_FASTACK_CONSERVE
-                        maxack = sn;
-                        latest_ts = ts;
+                            maxack = sn;
+                            latest_ts = ts;
 #else
                         if (Itimediff(ts, latest_ts) > 0)
                         {
@@ -1805,68 +1717,72 @@ namespace System.Net.Sockets.Kcp
                             latest_ts = ts;
                         }
 #endif
-                    }
-
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_ACK))
-                    {
-                        LogWriteLine($"input ack: sn={sn} rtt={Itimediff(current, ts)} rto={rx_rto}", KcpLogMask.IKCP_LOG_IN_ACK.ToString());
-                    }
-                }
-                else if (IKCP_CMD_PUSH == cmd)
-                {
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_DATA))
-                    {
-                        LogWriteLine($"input psh: sn={sn} ts={ts}", KcpLogMask.IKCP_LOG_IN_DATA.ToString());
-                    }
-
-                    if (Itimediff(sn, rcv_nxt + rcv_wnd) < 0)
-                    {
-                        ///instead of ikcp_ack_push
-                        acklist.Enqueue((sn, ts));
-
-                        if (Itimediff(sn, rcv_nxt) >= 0)
-                        {
-                            var seg = SegmentManager.Alloc((int)length);
-                            seg.conv = conv_;
-                            seg.cmd = cmd;
-                            seg.frg = frg;
-                            seg.wnd = wnd;
-                            seg.ts = ts;
-                            seg.sn = sn;
-                            seg.una = una;
-                            //seg.len = length;  长度在分配时确定，不能改变
-
-                            if (length > 0)
-                            {
-                                span.Slice(offset, (int)length).CopyTo(seg.data);
-                            }
-
-                            Parse_data(seg);
                         }
-                    }
-                }
-                else if (IKCP_CMD_WASK == cmd)
-                {
-                    // ready to send back IKCP_CMD_WINS in Ikcp_flush
-                    // tell remote my window size
-                    probe |= IKCP_ASK_TELL;
 
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_PROBE))
-                    {
-                        LogWriteLine($"input probe", KcpLogMask.IKCP_LOG_IN_PROBE.ToString());
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_ACK))
+                        {
+                            LogWriteLine($"input ack: sn={sn} rtt={TimeDiff(current, ts)} rto={rx_rto}", KcpLogMask.IKCP_LOG_IN_ACK.ToString());
+                        }
+
+                        break;
                     }
-                }
-                else if (IKCP_CMD_WINS == cmd)
-                {
-                    // do nothing
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_WINS))
+                    case IKCP_CMD_PUSH:
                     {
-                        LogWriteLine($"input wins: {wnd}", KcpLogMask.IKCP_LOG_IN_WINS.ToString());
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_DATA))
+                        {
+                            LogWriteLine($"input psh: sn={sn} ts={ts}", KcpLogMask.IKCP_LOG_IN_DATA.ToString());
+                        }
+
+                        if (TimeDiff(sn, rcv_nxt + rcv_wnd) < 0)
+                        {
+                            // Instead of ikcp_ack_push
+                            acklist.Enqueue((sn, ts));
+
+                            if (TimeDiff(sn, rcv_nxt) >= 0)
+                            {
+                                var seg = SegmentManager.Alloc((int)length);
+                                seg.conv = conv_;
+                                seg.cmd = cmd;
+                                seg.frg = frg;
+                                seg.wnd = wnd;
+                                seg.ts = ts;
+                                seg.sn = sn;
+                                seg.una = una;
+
+                                if (length > 0)
+                                {
+                                    span.Slice(offset, (int)length).CopyTo(seg.data);
+                                }
+
+                                Parse_data(seg);
+                            }
+                        }
+
+                        break;
                     }
-                }
-                else
-                {
-                    return -3;
+                    case IKCP_CMD_WASK:
+                    {
+                        // Ready to send back IKCP_CMD_WINS in Ikcp_flush
+                        // Tell remote my window size
+                        probe |= IKCP_ASK_TELL;
+
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_PROBE))
+                        {
+                            LogWriteLine($"input probe", KcpLogMask.IKCP_LOG_IN_PROBE.ToString());
+                        }
+
+                        break;
+                    }
+                    case IKCP_CMD_WINS:
+                    {
+                        // Do nothing
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_WINS))
+                        {
+                            LogWriteLine($"input wins: {wnd}", KcpLogMask.IKCP_LOG_IN_WINS.ToString());
+                        }
+
+                        break;
+                    }
                 }
 
                 offset += (int)length;
@@ -1874,41 +1790,37 @@ namespace System.Net.Sockets.Kcp
 
             if (flag != 0)
             {
-                Parse_fastack(maxack, latest_ts);
+                Parse_fastTrack(maxack, latest_ts);
             }
 
-            if (Itimediff(snd_una, prev_una) > 0)
+            if (TimeDiff(snd_una, prev_una) <= 0) return 0;
+            if (cwnd >= rmt_wnd) return 0;
+
+            if (cwnd < ssthresh)
             {
-                if (cwnd < rmt_wnd)
+                cwnd++;
+                incr += mss;
+            }
+            else
+            {
+                if (incr < mss)
                 {
-                    if (cwnd < ssthresh)
-                    {
-                        cwnd++;
-                        incr += mss;
-                    }
-                    else
-                    {
-                        if (incr < mss)
-                        {
-                            incr = mss;
-                        }
-                        incr += (mss * mss) / incr + (mss / 16);
-                        if ((cwnd + 1) * mss <= incr)
-                        {
+                    incr = mss;
+                }
+                incr += (mss * mss) / incr + (mss / 16);
+                if ((cwnd + 1) * mss <= incr)
+                {
 #if true
-                            cwnd = (incr + mss - 1) / ((mss > 0) ? mss : 1);
+                    cwnd = (incr + mss - 1) / ((mss > 0) ? mss : 1);
 #else
                             cwnd++;
 #endif
-                        }
-                    }
-                    if (cwnd > rmt_wnd)
-                    {
-                        cwnd = rmt_wnd;
-                        incr = rmt_wnd * mss;
-                    }
                 }
             }
+
+            if (cwnd <= rmt_wnd) return 0;
+            cwnd = rmt_wnd;
+            incr = rmt_wnd * mss;
 
             return 0;
         }
@@ -1916,13 +1828,10 @@ namespace System.Net.Sockets.Kcp
         /// <summary>
         /// <inheritdoc cref="Input(ReadOnlySpan{byte})"/>
         /// </summary>
-        /// <param name="span"></param>
-        /// <returns></returns>
         public int Input(ReadOnlySequence<byte> span)
         {
             if (CheckDispose())
             {
-                //检查释放
                 return -4;
             }
 
@@ -1941,6 +1850,7 @@ namespace System.Net.Sockets.Kcp
             var flag = 0;
             uint maxack = 0;
             uint latest_ts = 0;
+
             while (true)
             {
                 uint ts = 0;
@@ -1952,10 +1862,7 @@ namespace System.Net.Sockets.Kcp
                 byte cmd = 0;
                 byte frg = 0;
 
-                if (span.Length - offset < IKCP_OVERHEAD)
-                {
-                    break;
-                }
+                if (span.Length - offset < IKCP_OVERHEAD) break;
 
                 Span<byte> header = stackalloc byte[24];
                 span.Slice(offset, 24).CopyTo(header);
@@ -1994,26 +1901,29 @@ namespace System.Net.Sockets.Kcp
                 Parse_una(una);
                 Shrink_buf();
 
-                if (IKCP_CMD_ACK == cmd)
+                switch (cmd)
                 {
-                    if (Itimediff(current, ts) >= 0)
+                    case IKCP_CMD_ACK:
                     {
-                        Update_ack(Itimediff(current, ts));
-                    }
-                    Parse_ack(sn);
-                    Shrink_buf();
+                        if (TimeDiff(current, ts) >= 0)
+                        {
+                            Update_ack(TimeDiff(current, ts));
+                        }
 
-                    if (flag == 0)
-                    {
-                        flag = 1;
-                        maxack = sn;
-                        latest_ts = ts;
-                    }
-                    else if (Itimediff(sn, maxack) > 0)
-                    {
+                        Parse_ack(sn);
+                        Shrink_buf();
+
+                        if (flag == 0)
+                        {
+                            flag = 1;
+                            maxack = sn;
+                            latest_ts = ts;
+                        }
+                        else if (TimeDiff(sn, maxack) > 0)
+                        {
 #if !IKCP_FASTACK_CONSERVE
-                        maxack = sn;
-                        latest_ts = ts;
+                            maxack = sn;
+                            latest_ts = ts;
 #else
                         if (Itimediff(ts, latest_ts) > 0)
                         {
@@ -2021,69 +1931,72 @@ namespace System.Net.Sockets.Kcp
                             latest_ts = ts;
                         }
 #endif
-                    }
-
-
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_ACK))
-                    {
-                        LogWriteLine($"input ack: sn={sn} rtt={Itimediff(current, ts)} rto={rx_rto}", KcpLogMask.IKCP_LOG_IN_ACK.ToString());
-                    }
-                }
-                else if (IKCP_CMD_PUSH == cmd)
-                {
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_DATA))
-                    {
-                        LogWriteLine($"input psh: sn={sn} ts={ts}", KcpLogMask.IKCP_LOG_IN_DATA.ToString());
-                    }
-
-                    if (Itimediff(sn, rcv_nxt + rcv_wnd) < 0)
-                    {
-                        ///instead of ikcp_ack_push
-                        acklist.Enqueue((sn, ts));
-
-                        if (Itimediff(sn, rcv_nxt) >= 0)
-                        {
-                            var seg = SegmentManager.Alloc((int)length);
-                            seg.conv = conv_;
-                            seg.cmd = cmd;
-                            seg.frg = frg;
-                            seg.wnd = wnd;
-                            seg.ts = ts;
-                            seg.sn = sn;
-                            seg.una = una;
-                            //seg.len = length;  长度在分配时确定，不能改变
-
-                            if (length > 0)
-                            {
-                                span.Slice(offset, (int)length).CopyTo(seg.data);
-                            }
-
-                            Parse_data(seg);
                         }
-                    }
-                }
-                else if (IKCP_CMD_WASK == cmd)
-                {
-                    // ready to send back IKCP_CMD_WINS in Ikcp_flush
-                    // tell remote my window size
-                    probe |= IKCP_ASK_TELL;
 
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_PROBE))
-                    {
-                        LogWriteLine($"input probe", KcpLogMask.IKCP_LOG_IN_PROBE.ToString());
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_ACK))
+                        {
+                            LogWriteLine($"input ack: sn={sn} rtt={TimeDiff(current, ts)} rto={rx_rto}", KcpLogMask.IKCP_LOG_IN_ACK.ToString());
+                        }
+
+                        break;
                     }
-                }
-                else if (IKCP_CMD_WINS == cmd)
-                {
-                    // do nothing
-                    if (CanLog(KcpLogMask.IKCP_LOG_IN_WINS))
+                    case IKCP_CMD_PUSH:
                     {
-                        LogWriteLine($"input wins: {wnd}", KcpLogMask.IKCP_LOG_IN_WINS.ToString());
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_DATA))
+                        {
+                            LogWriteLine($"input psh: sn={sn} ts={ts}", KcpLogMask.IKCP_LOG_IN_DATA.ToString());
+                        }
+
+                        if (TimeDiff(sn, rcv_nxt + rcv_wnd) < 0)
+                        {
+                            // Instead of ikcp_ack_push
+                            acklist.Enqueue((sn, ts));
+
+                            if (TimeDiff(sn, rcv_nxt) >= 0)
+                            {
+                                var seg = SegmentManager.Alloc((int)length);
+                                seg.conv = conv_;
+                                seg.cmd = cmd;
+                                seg.frg = frg;
+                                seg.wnd = wnd;
+                                seg.ts = ts;
+                                seg.sn = sn;
+                                seg.una = una;
+
+                                if (length > 0)
+                                {
+                                    span.Slice(offset, (int)length).CopyTo(seg.data);
+                                }
+
+                                Parse_data(seg);
+                            }
+                        }
+
+                        break;
                     }
-                }
-                else
-                {
-                    return -3;
+                    case IKCP_CMD_WASK:
+                    {
+                        // Ready to send back IKCP_CMD_WINS in Ikcp_flush
+                        // Tell remote my window size
+                        probe |= IKCP_ASK_TELL;
+
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_PROBE))
+                        {
+                            LogWriteLine($"input probe:", KcpLogMask.IKCP_LOG_IN_PROBE.ToString());
+                        }
+
+                        break;
+                    }
+                    case IKCP_CMD_WINS:
+                    {
+                        // Do nothing
+                        if (CanLog(KcpLogMask.IKCP_LOG_IN_WINS))
+                        {
+                            LogWriteLine($"input wins: {wnd}", KcpLogMask.IKCP_LOG_IN_WINS.ToString());
+                        }
+
+                        break;
+                    }
                 }
 
                 offset += (int)length;
@@ -2091,41 +2004,39 @@ namespace System.Net.Sockets.Kcp
 
             if (flag != 0)
             {
-                Parse_fastack(maxack, latest_ts);
+                Parse_fastTrack(maxack, latest_ts);
             }
 
-            if (Itimediff(snd_una, prev_una) > 0)
+            if (TimeDiff(snd_una, prev_una) <= 0) return 0;
+            if (cwnd >= rmt_wnd) return 0;
+
+            if (cwnd < ssthresh)
             {
-                if (cwnd < rmt_wnd)
+                cwnd++;
+                incr += mss;
+            }
+            else
+            {
+                if (incr < mss)
                 {
-                    if (cwnd < ssthresh)
-                    {
-                        cwnd++;
-                        incr += mss;
-                    }
-                    else
-                    {
-                        if (incr < mss)
-                        {
-                            incr = mss;
-                        }
-                        incr += (mss * mss) / incr + (mss / 16);
-                        if ((cwnd + 1) * mss <= incr)
-                        {
+                    incr = mss;
+                }
+
+                incr += (mss * mss) / incr + (mss / 16);
+
+                if ((cwnd + 1) * mss <= incr)
+                {
 #if true
-                            cwnd = (incr + mss - 1) / ((mss > 0) ? mss : 1);
+                    cwnd = (incr + mss - 1) / ((mss > 0) ? mss : 1);
 #else
                             cwnd++;
 #endif
-                        }
-                    }
-                    if (cwnd > rmt_wnd)
-                    {
-                        cwnd = rmt_wnd;
-                        incr = rmt_wnd * mss;
-                    }
                 }
             }
+
+            if (cwnd <= rmt_wnd) return 0;
+            cwnd = rmt_wnd;
+            incr = rmt_wnd * mss;
 
             return 0;
         }
@@ -2141,48 +2052,48 @@ namespace System.Net.Sockets.Kcp
                               ref uint length)
         {
             var offset = 0;
+
             if (IsLittleEndian)
             {
-                conv_ = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(offset));
+                conv_ = BinaryPrimitives.ReadUInt32LittleEndian(header[offset..]);
                 offset += 4;
 
                 cmd = header[offset];
                 offset += 1;
                 frg = header[offset];
                 offset += 1;
-                wnd = BinaryPrimitives.ReadUInt16LittleEndian(header.Slice(offset));
+                wnd = BinaryPrimitives.ReadUInt16LittleEndian(header[offset..]);
                 offset += 2;
 
-                ts = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(offset));
+                ts = BinaryPrimitives.ReadUInt32LittleEndian(header[offset..]);
                 offset += 4;
-                sn = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(offset));
+                sn = BinaryPrimitives.ReadUInt32LittleEndian(header[offset..]);
                 offset += 4;
-                una = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(offset));
+                una = BinaryPrimitives.ReadUInt32LittleEndian(header[offset..]);
                 offset += 4;
-                length = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(offset));
+                length = BinaryPrimitives.ReadUInt32LittleEndian(header[offset..]);
                 offset += 4;
             }
             else
             {
-                conv_ = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(offset));
+                conv_ = BinaryPrimitives.ReadUInt32BigEndian(header[offset..]);
                 offset += 4;
                 cmd = header[offset];
                 offset += 1;
                 frg = header[offset];
                 offset += 1;
-                wnd = BinaryPrimitives.ReadUInt16BigEndian(header.Slice(offset));
+                wnd = BinaryPrimitives.ReadUInt16BigEndian(header[offset..]);
                 offset += 2;
 
-                ts = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(offset));
+                ts = BinaryPrimitives.ReadUInt32BigEndian(header[offset..]);
                 offset += 4;
-                sn = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(offset));
+                sn = BinaryPrimitives.ReadUInt32BigEndian(header[offset..]);
                 offset += 4;
-                una = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(offset));
+                una = BinaryPrimitives.ReadUInt32BigEndian(header[offset..]);
                 offset += 4;
-                length = BinaryPrimitives.ReadUInt32BigEndian(header.Slice(offset));
+                length = BinaryPrimitives.ReadUInt32BigEndian(header[offset..]);
                 offset += 4;
             }
-
 
             return offset;
         }
