@@ -1,6 +1,6 @@
 # KCP C# .NET 7 
 Works out of the box for client & server communication. This implementation is using .NET 7, support for older frameworks was removed.
-
+[![CodeFactor](https://www.codefactor.io/repository/github/fallendev/kcp/badge)](https://www.codefactor.io/repository/github/fallendev/kcp)
 ## Features:
 
 - Asynchronous API standard interface IKcpIO.cs
